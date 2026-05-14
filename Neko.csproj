@@ -38,7 +38,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>pets\Textures\%(Filename)%(Extension)</Link>
     </Content>
-    <Content Include="skins\*-skin.png">
+    <Content Include="skins\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>pets\%(Filename)%(Extension)</Link>
     </Content>

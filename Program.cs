@@ -31,12 +31,8 @@ internal static class Program
 
         int initialSize = LayeredPetForm.SizeForMultiplier(settings.SizeMultiplier);
 
-        string? initialSkin = null;
-        var initialSkinPath = Path.ChangeExtension(initialPath, null) + "-skin.png";
-        if (File.Exists(initialSkinPath)) initialSkin = initialSkinPath;
-
         using var glHost = new Renderer.GlHost();
-        using var scene = new Renderer.Scene(glHost.Gl, initialPath, initialSize, initialSize, initialSkin);
+        using var scene = new Renderer.Scene(glHost.Gl, initialPath, initialSize, initialSize);
 
         var groups = BuildMenuGroups(modelPaths);
         using var tray = new TrayIcon(groups, currentSelection);
@@ -76,14 +72,9 @@ internal static class Program
     private static void ApplySelection(PetSelection selection, Renderer.Scene scene, LayeredPetForm form)
     {
         if (IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex))
-        {
             scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
-        }
         else
-        {
-            var skinPath = Path.ChangeExtension(selection.ModelPath, null) + "-skin.png";
-            scene.LoadModel(selection.ModelPath, File.Exists(skinPath) ? skinPath : null);
-        }
+            scene.LoadModel(selection.ModelPath, selection.TexturePath);
         form.SetBehavior(selection.Behavior);
     }
 
@@ -94,10 +85,10 @@ internal static class Program
         bool hasZombie = File.Exists(zombieMesh);
 
         var pets = modelPaths
-            .Select(p => new TrayMenuEntry(PrettyName(p), p, BehaviorKind.FreeWander))
+            .Select(p => BuildPetEntry(p, BehaviorKind.FreeWander))
             .ToList();
         if (hasZombie)
-            pets.Add(new TrayMenuEntry("Zombie", zombieMesh, BehaviorKind.FreeWander));
+            pets.Add(BuildPetEntry(zombieMesh, BehaviorKind.FreeWander));
 
         var characters = new List<TrayMenuEntry>();
         if (hasZombie)
@@ -107,6 +98,31 @@ internal static class Program
         if (characters.Count > 0)
             groups.Add(new TrayMenuGroup("Characters", characters));
         return groups;
+    }
+
+    private static TrayMenuEntry BuildPetEntry(string modelPath, BehaviorKind behavior)
+    {
+        var name = PrettyName(modelPath);
+        var modelDir = Path.GetDirectoryName(modelPath);
+        var modelBase = Path.GetFileNameWithoutExtension(modelPath);
+        if (modelDir == null) return new TrayMenuEntry(name, modelPath, behavior);
+
+        var variantFiles = Directory.GetFiles(modelDir, modelBase + "-*.png");
+        if (variantFiles.Length == 0)
+            return new TrayMenuEntry(name, modelPath, behavior);
+
+        var variants = new List<TrayMenuEntry>
+        {
+            new TrayMenuEntry("Default", modelPath, behavior),
+        };
+        foreach (var file in variantFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+        {
+            var variantName = Path.GetFileNameWithoutExtension(file)[(modelBase.Length + 1)..];
+            if (variantName.Length == 0) continue;
+            var label = char.ToUpper(variantName[0]) + variantName[1..];
+            variants.Add(new TrayMenuEntry(label, modelPath, behavior, TexturePath: file));
+        }
+        return new TrayMenuEntry(name, modelPath, behavior, Variants: variants);
     }
 
     private static bool IsSkinnedCharacter(string path, out string[] animGlbs, out string? texture)

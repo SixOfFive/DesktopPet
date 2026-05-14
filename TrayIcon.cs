@@ -6,9 +6,14 @@ using System.Windows.Forms;
 
 namespace Neko;
 
-internal sealed record TrayMenuEntry(string Label, string ModelPath, BehaviorKind Behavior);
+internal sealed record TrayMenuEntry(
+    string Label,
+    string ModelPath,
+    BehaviorKind Behavior,
+    string? TexturePath = null,
+    IReadOnlyList<TrayMenuEntry>? Variants = null);
 internal sealed record TrayMenuGroup(string Label, IEnumerable<TrayMenuEntry> Entries);
-internal sealed record PetSelection(string ModelPath, BehaviorKind Behavior);
+internal sealed record PetSelection(string ModelPath, BehaviorKind Behavior, string? TexturePath = null);
 
 internal enum SizeChange { Half, Regular, Double }
 
@@ -31,16 +36,7 @@ internal sealed class TrayIcon : IDisposable
             var groupItem = new ToolStripMenuItem(group.Label);
             foreach (var entry in group.Entries.OrderBy(e => e.Label, StringComparer.OrdinalIgnoreCase))
             {
-                var item = new ToolStripMenuItem(entry.Label)
-                {
-                    Checked = initial != null
-                              && string.Equals(entry.ModelPath, initial.ModelPath, StringComparison.OrdinalIgnoreCase)
-                              && entry.Behavior == initial.Behavior,
-                };
-                var captured = entry;
-                item.Click += (_, _) => OnEntryClicked(captured);
-                _entryItems.Add((entry, item));
-                groupItem.DropDownItems.Add(item);
+                AddEntry(groupItem.DropDownItems, entry, initial);
             }
             if (groupItem.DropDownItems.Count > 0)
             {
@@ -70,11 +66,43 @@ internal sealed class TrayIcon : IDisposable
         };
     }
 
+    private void AddEntry(ToolStripItemCollection parent, TrayMenuEntry entry, PetSelection? initial)
+    {
+        if (entry.Variants != null && entry.Variants.Count > 0)
+        {
+            var sub = new ToolStripMenuItem(entry.Label);
+            foreach (var variant in entry.Variants)
+                AddLeaf(sub.DropDownItems, variant, initial);
+            parent.Add(sub);
+        }
+        else
+        {
+            AddLeaf(parent, entry, initial);
+        }
+    }
+
+    private void AddLeaf(ToolStripItemCollection parent, TrayMenuEntry entry, PetSelection? initial)
+    {
+        var item = new ToolStripMenuItem(entry.Label)
+        {
+            Checked = initial != null && Matches(entry, initial),
+        };
+        var captured = entry;
+        item.Click += (_, _) => OnEntryClicked(captured);
+        _entryItems.Add((entry, item));
+        parent.Add(item);
+    }
+
+    private static bool Matches(TrayMenuEntry e, PetSelection s) =>
+        string.Equals(e.ModelPath, s.ModelPath, StringComparison.OrdinalIgnoreCase)
+        && e.Behavior == s.Behavior
+        && string.Equals(e.TexturePath, s.TexturePath, StringComparison.OrdinalIgnoreCase);
+
     private void OnEntryClicked(TrayMenuEntry entry)
     {
         foreach (var (e, item) in _entryItems)
             item.Checked = ReferenceEquals(e, entry);
-        PetSelected?.Invoke(this, new PetSelection(entry.ModelPath, entry.Behavior));
+        PetSelected?.Invoke(this, new PetSelection(entry.ModelPath, entry.Behavior, entry.TexturePath));
     }
 
     public void Dispose()

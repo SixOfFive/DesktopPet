@@ -67,18 +67,18 @@ Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bun
 
 ## Custom textures
 
-Every cube pet samples colors from a shared 512×512 palette (`colormap.png`). You can recolor one pet without affecting the others by dropping a PNG named `<modelname>-skin.png` in the [`skins/`](skins/) folder — the build copies it next to the GLB and the renderer uses it instead of the default colormap.
+Every cube pet samples colors from a shared 512×512 palette (`colormap.png`). You can recolor one pet without affecting the others by dropping PNGs named `<modelname>-<variant>.png` in the [`skins/`](skins/) folder. The build copies them next to the GLB and the tray menu turns any pet with one or more variants into a submenu: **Default** (the original Kenney colormap) plus one entry per variant.
 
-Two bundled skins (both modeled on the author's real pets):
+Two bundled variants, both modeled on the author's real pets:
 
-- **Cat** (`skins/animal-cat-skin.png`) — long-haired brown tabby with cream belly tones. Modifies cells (3,3) and (3,2) of the palette.
-- **Dog** (`skins/animal-dog-skin.png`) — Rottweiler-style black-and-tan. Most cells filled near-black for the body; cell (1,2) holds the rust-tan that the leg UVs sample.
+- **Cat → Tibbs** (`skins/animal-cat-tibbs.png`) — work-in-progress brown tabby. The cube cat samples cells (3,3) and (3,2). Charlie (the author's actual current cat) is coming next.
+- **Dog → Chewy** (`skins/animal-dog-chewy.png`) — Rottweiler black-and-tan. Most cells filled near-black for the body; cell (1,2) holds the rust-tan that the leg UVs sample.
 
-To make your own:
-1. Copy `kenney_cube-pets_1.0/Models/GLB format/Textures/colormap.png` to `skins/<modelname>-skin.png`.
-2. Open it in any image editor (it's 512×512, a 4×4 grid of 128×128 cells).
-3. Modify the cells the model uses (each pet only samples a couple of them — look at the GLB's UV ranges or just edit-and-iterate).
-4. Rebuild and switch to that pet from the tray.
+To add your own:
+1. Copy `kenney_cube-pets_1.0/Models/GLB format/Textures/colormap.png` to `skins/<modelname>-<variant>.png` (e.g. `animal-cat-charlie.png`).
+2. Open it in any image editor (512×512, a 4×4 grid of 128×128 cells).
+3. Modify the cells the model uses (each pet only samples a couple — look at the GLB's UV ranges or edit-and-iterate).
+4. Rebuild and select the variant from the tray submenu for that pet.
 
 
 ## How it works
