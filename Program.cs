@@ -55,14 +55,18 @@ internal static class Program
 
     private static IEnumerable<TrayMenuGroup> BuildMenuGroups(string[] modelPaths)
     {
-        var pets = modelPaths
-            .Select(p => new TrayMenuEntry(PrettyName(p), p, BehaviorKind.FreeWander))
-            .ToArray();
-
         var charactersDir = Path.Combine(AppContext.BaseDirectory, "characters");
         var zombieMesh = Path.Combine(charactersDir, "characterMedium.glb");
+        bool hasZombie = File.Exists(zombieMesh);
+
+        var pets = modelPaths
+            .Select(p => new TrayMenuEntry(PrettyName(p), p, BehaviorKind.FreeWander))
+            .ToList();
+        if (hasZombie)
+            pets.Add(new TrayMenuEntry("Zombie", zombieMesh, BehaviorKind.FreeWander));
+
         var characters = new List<TrayMenuEntry>();
-        if (File.Exists(zombieMesh))
+        if (hasZombie)
             characters.Add(new TrayMenuEntry("Zombie", zombieMesh, BehaviorKind.WindowWalker));
 
         var groups = new List<TrayMenuGroup> { new("Pets", pets) };

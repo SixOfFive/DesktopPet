@@ -20,8 +20,8 @@ internal enum PetState
 
 internal sealed class Pet : IPetBehavior
 {
-    private const float WalkSpeed = 80f;
-    private const float ChaseSpeed = 220f;
+    private const float BaseWalkSpeed = 80f;
+    private const float BaseChaseSpeed = 220f;
     private const float NoticeDistance = 90f;
     private const float CatchDistance = 28f;
     private const double EatDurationSec = 1.5;
@@ -40,6 +40,8 @@ internal sealed class Pet : IPetBehavior
     private readonly Random _rng = new();
     private readonly Rectangle _bounds;
     private readonly Size _size;
+    private readonly float _walkSpeed;
+    private readonly float _chaseSpeed;
 
     private PointF _position;
     private PointF _velocity;
@@ -60,6 +62,8 @@ internal sealed class Pet : IPetBehavior
     {
         _bounds = screenBounds;
         _size = petSize;
+        _walkSpeed = BaseWalkSpeed * petSize.Height / 128f;
+        _chaseSpeed = BaseChaseSpeed * petSize.Height / 128f;
         _position = new PointF(
             screenBounds.X + screenBounds.Width / 2f - petSize.Width / 2f,
             screenBounds.Y + screenBounds.Height / 2f - petSize.Height / 2f);
@@ -152,7 +156,7 @@ internal sealed class Pet : IPetBehavior
                 else
                 {
                     float inv = 1f / dist;
-                    _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
+                    _velocity = new PointF(dx * inv * _chaseSpeed, dy * inv * _chaseSpeed);
                 }
                 break;
 
@@ -163,7 +167,7 @@ internal sealed class Pet : IPetBehavior
                     {
                         State = PetState.Chase;
                         float invc = dist > 0 ? 1f / dist : 0;
-                        _velocity = new PointF(dx * invc * ChaseSpeed, dy * invc * ChaseSpeed);
+                        _velocity = new PointF(dx * invc * _chaseSpeed, dy * invc * _chaseSpeed);
                     }
                     else
                     {
@@ -181,7 +185,7 @@ internal sealed class Pet : IPetBehavior
                 else
                 {
                     float inv = 1f / dist;
-                    _velocity = new PointF(dx * inv * WalkSpeed, dy * inv * WalkSpeed);
+                    _velocity = new PointF(dx * inv * _walkSpeed, dy * inv * _walkSpeed);
                 }
                 break;
 
@@ -190,7 +194,7 @@ internal sealed class Pet : IPetBehavior
                 {
                     State = PetState.Chase;
                     float inv = dist > 0 ? 1f / dist : 0;
-                    _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
+                    _velocity = new PointF(dx * inv * _chaseSpeed, dy * inv * _chaseSpeed);
                 }
                 else if (_cursorStillSec > CursorIdleSecForSleep)
                 {
@@ -234,8 +238,8 @@ internal sealed class Pet : IPetBehavior
             State = PetState.Walk;
             var angle = _rng.NextDouble() * Math.PI * 2;
             _velocity = new PointF(
-                (float)(Math.Cos(angle) * WalkSpeed),
-                (float)(Math.Sin(angle) * WalkSpeed));
+                (float)(Math.Cos(angle) * _walkSpeed),
+                (float)(Math.Sin(angle) * _walkSpeed));
         }
         else
         {
