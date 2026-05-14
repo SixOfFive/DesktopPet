@@ -7,6 +7,10 @@ obj/
 *.swp
 *~
 
+# Claude Code local state
+.claude/
+CLAUDE.md
+
 # Build outputs
 out/
 publish/
