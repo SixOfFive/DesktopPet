@@ -11,7 +11,7 @@ internal sealed class WindowWalker : IPetBehavior
     private const float MaxFallSpeed = 900f;
     private const float GroundSnapPx = 6f;
     private const float EdgeDropThresholdPx = 8f;
-    private const double WindowRefreshSec = 0.25;
+    private const double WindowRefreshSec = 0.05;
     private const double IdlePauseChancePerSec = 0.15;
     private const double IdleDurationSec = 1.8;
     private const double FacePlantDurationSec = 1.0;
@@ -186,8 +186,9 @@ internal sealed class WindowWalker : IPetBehavior
         Rectangle? best = null;
         bool bestIsLeftEdge = false;
         float bestDx = float.MaxValue;
-        foreach (var w in _windows)
+        for (int i = 0; i < _windows.Count; i++)
         {
+            var w = _windows[i];
             if (w.Top >= currentGroundY - 4f) continue;
             float minViableTop = _screenBounds.Top + _size.Height;
             if (w.Top < minViableTop) continue;
@@ -196,6 +197,24 @@ internal sealed class WindowWalker : IPetBehavior
             float distRight = MathF.Abs(w.Right - petCenterX);
             float dx = MathF.Min(distLeft, distRight);
             if (dx > ClimbWallSearchPx) continue;
+
+            float landingX = distLeft < distRight ? w.Left - _size.Width / 2f : w.Right + _size.Width / 2f;
+            var topRect = new Rectangle(
+                (int)(landingX - _size.Width / 2f),
+                w.Top - _size.Height,
+                _size.Width,
+                _size.Height);
+            bool obscured = false;
+            for (int j = 0; j < i; j++)
+            {
+                if (_windows[j].IntersectsWith(topRect))
+                {
+                    obscured = true;
+                    break;
+                }
+            }
+            if (obscured) continue;
+
             if (dx < bestDx)
             {
                 bestDx = dx;
@@ -227,12 +246,32 @@ internal sealed class WindowWalker : IPetBehavior
     {
         float minViableTop = _screenBounds.Top + _size.Height;
         float? best = null;
-        foreach (var w in _windows)
+        int halfW = _size.Width / 2;
+        for (int i = 0; i < _windows.Count; i++)
         {
+            var w = _windows[i];
             if (x < w.Left || x > w.Right) continue;
             float top = w.Top;
             if (top < minViableTop) continue;
             if (top < feetY - 1f) continue;
+
+            var bodyRect = new Rectangle(
+                (int)(x - halfW),
+                w.Top - _size.Height,
+                _size.Width,
+                _size.Height);
+
+            bool obscured = false;
+            for (int j = 0; j < i; j++)
+            {
+                if (_windows[j].IntersectsWith(bodyRect))
+                {
+                    obscured = true;
+                    break;
+                }
+            }
+            if (obscured) continue;
+
             if (best == null || top < best.Value) best = top;
         }
         float screenBottom = _screenBounds.Bottom;
