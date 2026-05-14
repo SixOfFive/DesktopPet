@@ -67,13 +67,6 @@ internal sealed class HeadShakeAnimation : IProceduralAnimation
     public void Evaluate(float time, Span<Vector3> tBuf, Span<Quaternion> rBuf, Span<Vector3> sBuf,
         IReadOnlyDictionary<string, int> nameToIdx)
     {
-        if (nameToIdx.TryGetValue("Hips", out int hips))
-            rBuf[hips] = rBuf[hips] * Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI / 2f);
-        if (nameToIdx.TryGetValue("LeftArm", out int la))
-            rBuf[la] = rBuf[la] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1.1f);
-        if (nameToIdx.TryGetValue("RightArm", out int ra))
-            rBuf[ra] = rBuf[ra] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -1.1f);
-
         float shake = MathF.Sin(time * 22f) * 0.45f;
         if (nameToIdx.TryGetValue("Head", out int head))
             rBuf[head] = rBuf[head] * Quaternion.CreateFromAxisAngle(Vector3.UnitY, shake);

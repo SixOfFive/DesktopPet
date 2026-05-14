@@ -19,6 +19,7 @@ internal sealed class WindowWalker : IPetBehavior
     private const float FallLandImpactSpeed = 200f;
     private const float ClimbSpeed = 60f;
     private const double ClimbChance = 0.55;
+    private const double SpontaneousClimbChancePerSec = 0.20;
     private const double GripLossChancePerSec = 0.12;
     private const float ClimbWallSearchPx = 24f;
 
@@ -131,6 +132,12 @@ internal sealed class WindowWalker : IPetBehavior
                 _idleRemaining = IdleDurationSec * (0.5 + Rng.NextDouble());
                 State = PetState.Idle;
                 return;
+            }
+
+            if (Rng.NextDouble() < SpontaneousClimbChancePerSec * deltaSeconds)
+            {
+                if (TryStartClimb(centerX, groundUnder.Value))
+                    return;
             }
 
             _position.X += _vx * dt;
