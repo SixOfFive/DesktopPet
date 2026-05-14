@@ -13,6 +13,8 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
 
+        var settings = Settings.Load();
+
         var modelPaths = DiscoverModels();
         if (modelPaths.Length == 0)
         {
@@ -25,32 +27,55 @@ internal static class Program
         var initialPath = modelPaths.FirstOrDefault(p =>
             Path.GetFileName(p).Equals("animal-cat.glb", StringComparison.OrdinalIgnoreCase))
             ?? modelPaths[0];
-        var initial = new PetSelection(initialPath, BehaviorKind.FreeWander);
+        var currentSelection = new PetSelection(initialPath, BehaviorKind.FreeWander);
+
+        int initialSize = LayeredPetForm.SizeForMultiplier(settings.SizeMultiplier);
 
         using var glHost = new Renderer.GlHost();
-        using var scene = new Renderer.Scene(glHost.Gl, initialPath, LayeredPetForm.CubePetRenderSize, LayeredPetForm.CubePetRenderSize);
+        using var scene = new Renderer.Scene(glHost.Gl, initialPath, initialSize, initialSize);
 
         var groups = BuildMenuGroups(modelPaths);
-        using var tray = new TrayIcon(groups, initial);
+        using var tray = new TrayIcon(groups, currentSelection);
         using var form = new LayeredPetForm(scene);
+        form.SetRenderSize(initialSize);
 
         tray.ExitRequested += (_, _) => Application.ExitThread();
+
         tray.PetSelected += (_, selection) =>
         {
-            bool isSkinned = IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex);
-            int size = isSkinned ? LayeredPetForm.CharacterRenderSize : LayeredPetForm.CubePetRenderSize;
+            currentSelection = selection;
+            ApplySelection(selection, scene, form);
+        };
+
+        tray.SizeChangeRequested += (_, change) =>
+        {
+            float newMul = change switch
+            {
+                SizeChange.Half => settings.SizeMultiplier * 0.5f,
+                SizeChange.Regular => 1.0f,
+                SizeChange.Double => settings.SizeMultiplier * 2.0f,
+                _ => settings.SizeMultiplier,
+            };
+            settings.SizeMultiplier = Math.Clamp(newMul, Settings.MinMultiplier, Settings.MaxMultiplier);
+            settings.Save();
+
+            int size = LayeredPetForm.SizeForMultiplier(settings.SizeMultiplier);
             form.SetRenderSize(size);
             scene.Resize(size, size);
-            if (isSkinned)
-                scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
-            else
-                scene.LoadModel(selection.ModelPath);
-            form.SetBehavior(selection.Behavior);
+            form.SetBehavior(currentSelection.Behavior);
         };
 
         form.Show();
-
         Application.Run();
+    }
+
+    private static void ApplySelection(PetSelection selection, Renderer.Scene scene, LayeredPetForm form)
+    {
+        if (IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex))
+            scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
+        else
+            scene.LoadModel(selection.ModelPath);
+        form.SetBehavior(selection.Behavior);
     }
 
     private static IEnumerable<TrayMenuGroup> BuildMenuGroups(string[] modelPaths)

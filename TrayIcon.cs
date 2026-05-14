@@ -10,6 +10,8 @@ internal sealed record TrayMenuEntry(string Label, string ModelPath, BehaviorKin
 internal sealed record TrayMenuGroup(string Label, IEnumerable<TrayMenuEntry> Entries);
 internal sealed record PetSelection(string ModelPath, BehaviorKind Behavior);
 
+internal enum SizeChange { Half, Regular, Double }
+
 internal sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
@@ -17,6 +19,7 @@ internal sealed class TrayIcon : IDisposable
 
     public event EventHandler? ExitRequested;
     public event EventHandler<PetSelection>? PetSelected;
+    public event EventHandler<SizeChange>? SizeChangeRequested;
 
     public TrayIcon(IEnumerable<TrayMenuGroup> groups, PetSelection? initial)
     {
@@ -48,6 +51,13 @@ internal sealed class TrayIcon : IDisposable
 
         if (anyGroup)
             menu.Items.Add(new ToolStripSeparator());
+
+        var sizeMenu = new ToolStripMenuItem("Size");
+        sizeMenu.DropDownItems.Add("Half size", null, (_, _) => SizeChangeRequested?.Invoke(this, SizeChange.Half));
+        sizeMenu.DropDownItems.Add("Regular size", null, (_, _) => SizeChangeRequested?.Invoke(this, SizeChange.Regular));
+        sizeMenu.DropDownItems.Add("Double size", null, (_, _) => SizeChangeRequested?.Invoke(this, SizeChange.Double));
+        menu.Items.Add(sizeMenu);
+        menu.Items.Add(new ToolStripSeparator());
 
         menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
 

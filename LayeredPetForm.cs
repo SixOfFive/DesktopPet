@@ -7,19 +7,18 @@ namespace Neko;
 
 internal sealed class LayeredPetForm : Form
 {
-    public const int CubePetRenderSize = 128;
-    public static int CharacterRenderSize { get; } = ComputeCharacterSize();
+    public const int BaseRenderSize = 128;
+    public const int MinRenderSize = 32;
+    public const int MaxRenderSize = 512;
     private const int FrameIntervalMs = 16;
 
-    private static int ComputeCharacterSize()
+    public static int SizeForMultiplier(float multiplier)
     {
-        var h = Screen.PrimaryScreen?.Bounds.Height ?? 1080;
-        int size = h * 18 / 100;
-        size = (size + 8) / 16 * 16;
-        return Math.Clamp(size, 96, 512);
+        int size = (int)Math.Round(BaseRenderSize * multiplier);
+        return Math.Clamp(size, MinRenderSize, MaxRenderSize);
     }
 
-    public int CurrentRenderSize { get; private set; } = CubePetRenderSize;
+    public int CurrentRenderSize { get; private set; } = BaseRenderSize;
 
     private IPetBehavior _pet;
     private readonly Renderer.Scene _scene;
