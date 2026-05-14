@@ -65,6 +65,20 @@ Output: `bin\Release\net9.0-windows\win-x64\publish\Neko.exe` — self-contained
 
 Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bunny, cat, caterpillar, chick, cow, crab, deer, dog, elephant, fish, fox, giraffe, hog, koala, lion, monkey, panda, parrot, penguin, pig, polar bear, tiger) — or **Characters → Zombie** to switch to the window-walking humanoid.
 
+## Custom textures
+
+Every cube pet samples colors from a shared 512×512 palette (`colormap.png`). You can recolor one pet without affecting the others by dropping a PNG named `<modelname>-skin.png` in the [`skins/`](skins/) folder — the build copies it next to the GLB and the renderer uses it instead of the default colormap.
+
+The bundled **cat** skin (`skins/animal-cat-skin.png`) is hand-tinted to look like the author's real cat — a long-haired brown tabby with cream belly tones. Compare cells (3,3) and (3,2) of the original colormap against the override to see the kind of regions a recolor needs to touch.
+
+To make your own:
+1. Copy `kenney_cube-pets_1.0/Models/GLB format/Textures/colormap.png` to `skins/<modelname>-skin.png`.
+2. Open it in any image editor (it's 512×512, a 4×4 grid of 128×128 cells).
+3. Modify the cells the model uses (each pet only samples a couple of them — look at the GLB's UV ranges or just edit-and-iterate).
+4. Rebuild and switch to that pet from the tray.
+
+A **dog** skin will follow.
+
 ## How it works
 
 **Rendering pipeline** (every 16 ms):
