@@ -69,7 +69,10 @@ Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bun
 
 Every cube pet samples colors from a shared 512×512 palette (`colormap.png`). You can recolor one pet without affecting the others by dropping a PNG named `<modelname>-skin.png` in the [`skins/`](skins/) folder — the build copies it next to the GLB and the renderer uses it instead of the default colormap.
 
-The bundled **cat** skin (`skins/animal-cat-skin.png`) is hand-tinted to look like the author's real cat — a long-haired brown tabby with cream belly tones. Compare cells (3,3) and (3,2) of the original colormap against the override to see the kind of regions a recolor needs to touch.
+Two bundled skins (both modeled on the author's real pets):
+
+- **Cat** (`skins/animal-cat-skin.png`) — long-haired brown tabby with cream belly tones. Modifies cells (3,3) and (3,2) of the palette.
+- **Dog** (`skins/animal-dog-skin.png`) — Rottweiler-style black-and-tan. Most cells filled near-black for the body; cell (1,2) holds the rust-tan that the leg UVs sample.
 
 To make your own:
 1. Copy `kenney_cube-pets_1.0/Models/GLB format/Textures/colormap.png` to `skins/<modelname>-skin.png`.
@@ -77,7 +80,6 @@ To make your own:
 3. Modify the cells the model uses (each pet only samples a couple of them — look at the GLB's UV ranges or just edit-and-iterate).
 4. Rebuild and switch to that pet from the tray.
 
-A **dog** skin will follow.
 
 ## How it works
 
