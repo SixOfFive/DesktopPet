@@ -1,0 +1,30 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.swp
+*~
+
+# Build outputs
+out/
+publish/
+*.exe
+*.pdb
+*.dll
+*.cache
+
+# Rider / Resharper
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+.nuget/
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store
