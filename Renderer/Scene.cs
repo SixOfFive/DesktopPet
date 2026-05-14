@@ -257,6 +257,8 @@ void main() {
                 PetState.Chase => _skinnedModel.FindAnimationIndex("Run", idleIdx),
                 PetState.Fall => _skinnedModel.FindAnimationIndex("Fall", idleIdx),
                 PetState.Climb => _skinnedModel.FindAnimationIndex("Climb", idleIdx),
+                PetState.FacePlant => _skinnedModel.FindAnimationIndex("FacePlant", idleIdx),
+                PetState.HeadShake => _skinnedModel.FindAnimationIndex("HeadShake", idleIdx),
                 PetState.Eat or PetState.Dance => _skinnedModel.FindAnimationIndex("Jump", idleIdx),
                 _ => idleIdx,
             };

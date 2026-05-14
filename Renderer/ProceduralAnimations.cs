@@ -40,6 +40,48 @@ internal sealed class FallAnimation : IProceduralAnimation
     }
 }
 
+internal sealed class FacePlantAnimation : IProceduralAnimation
+{
+    public string Name => "FacePlant";
+
+    public void Evaluate(float time, Span<Vector3> tBuf, Span<Quaternion> rBuf, Span<Vector3> sBuf,
+        IReadOnlyDictionary<string, int> nameToIdx)
+    {
+        if (nameToIdx.TryGetValue("Hips", out int hips))
+            rBuf[hips] = rBuf[hips] * Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI / 2f);
+        if (nameToIdx.TryGetValue("LeftArm", out int la))
+            rBuf[la] = rBuf[la] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1.5f);
+        if (nameToIdx.TryGetValue("RightArm", out int ra))
+            rBuf[ra] = rBuf[ra] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -1.5f);
+        if (nameToIdx.TryGetValue("LeftUpLeg", out int ll))
+            rBuf[ll] = rBuf[ll] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.3f);
+        if (nameToIdx.TryGetValue("RightUpLeg", out int rl))
+            rBuf[rl] = rBuf[rl] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -0.3f);
+    }
+}
+
+internal sealed class HeadShakeAnimation : IProceduralAnimation
+{
+    public string Name => "HeadShake";
+
+    public void Evaluate(float time, Span<Vector3> tBuf, Span<Quaternion> rBuf, Span<Vector3> sBuf,
+        IReadOnlyDictionary<string, int> nameToIdx)
+    {
+        if (nameToIdx.TryGetValue("Hips", out int hips))
+            rBuf[hips] = rBuf[hips] * Quaternion.CreateFromAxisAngle(Vector3.UnitX, MathF.PI / 2f);
+        if (nameToIdx.TryGetValue("LeftArm", out int la))
+            rBuf[la] = rBuf[la] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 1.1f);
+        if (nameToIdx.TryGetValue("RightArm", out int ra))
+            rBuf[ra] = rBuf[ra] * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -1.1f);
+
+        float shake = MathF.Sin(time * 22f) * 0.45f;
+        if (nameToIdx.TryGetValue("Head", out int head))
+            rBuf[head] = rBuf[head] * Quaternion.CreateFromAxisAngle(Vector3.UnitY, shake);
+        if (nameToIdx.TryGetValue("Neck", out int neck))
+            rBuf[neck] = rBuf[neck] * Quaternion.CreateFromAxisAngle(Vector3.UnitY, shake * 0.5f);
+    }
+}
+
 internal sealed class ClimbAnimation : IProceduralAnimation
 {
     private const float CycleFreq = 3.5f;

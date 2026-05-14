@@ -14,6 +14,9 @@ internal sealed class WindowWalker : IPetBehavior
     private const double WindowRefreshSec = 0.25;
     private const double IdlePauseChancePerSec = 0.15;
     private const double IdleDurationSec = 1.8;
+    private const double FacePlantDurationSec = 1.0;
+    private const double HeadShakeDurationSec = 0.6;
+    private const float FallLandImpactSpeed = 200f;
 
     private static readonly Random Rng = new();
 
@@ -27,6 +30,7 @@ internal sealed class WindowWalker : IPetBehavior
     private List<Rectangle> _windows = new();
     private double _windowRefreshTimer;
     private double _idleRemaining;
+    private double _stateTimer;
 
     public PetState State { get; private set; } = PetState.Idle;
     public float Yaw { get; private set; }
@@ -55,6 +59,24 @@ internal sealed class WindowWalker : IPetBehavior
         }
 
         float dt = (float)deltaSeconds;
+
+        if (State == PetState.FacePlant)
+        {
+            _stateTimer -= deltaSeconds;
+            if (_stateTimer <= 0)
+            {
+                State = PetState.HeadShake;
+                _stateTimer = HeadShakeDurationSec;
+            }
+            return;
+        }
+        if (State == PetState.HeadShake)
+        {
+            _stateTimer -= deltaSeconds;
+            if (_stateTimer <= 0) State = PetState.Idle;
+            return;
+        }
+
         float feetY = _position.Y + _size.Height;
         float centerX = _position.X + _size.Width / 2f;
 
@@ -113,8 +135,14 @@ internal sealed class WindowWalker : IPetBehavior
 
             if (groundUnder.HasValue && _position.Y + _size.Height >= groundUnder.Value)
             {
+                bool hardLanding = _vy >= FallLandImpactSpeed;
                 _position.Y = groundUnder.Value - _size.Height;
                 _vy = 0;
+                if (hardLanding)
+                {
+                    State = PetState.FacePlant;
+                    _stateTimer = FacePlantDurationSec;
+                }
             }
         }
     }

@@ -14,6 +14,8 @@ internal enum PetState
     WalkToSleep,
     Fall,
     Climb,
+    FacePlant,
+    HeadShake,
 }
 
 internal sealed class Pet : IPetBehavior

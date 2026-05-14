@@ -133,7 +133,13 @@ internal static class SkinnedLoader
             texture = new GLTexture(gl, BitmapToRgba(bmp), bmp.Width, bmp.Height);
         }
 
-        var procedural = new IProceduralAnimation[] { new FallAnimation(), new ClimbAnimation() };
+        var procedural = new IProceduralAnimation[]
+        {
+            new FallAnimation(),
+            new ClimbAnimation(),
+            new FacePlantAnimation(),
+            new HeadShakeAnimation(),
+        };
 
         return new SkinnedModel(gl, nodeCount, jointCount)
         {
