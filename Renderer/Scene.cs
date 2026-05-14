@@ -249,13 +249,16 @@ void main() {
         }
         else if (_skinnedModel != null)
         {
+            int idleIdx = _skinnedModel.FindAnimationIndex("Idle");
             int animIdx = state switch
             {
-                PetState.Walk => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
-                PetState.WalkToSleep => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
-                PetState.Chase => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
-                PetState.Eat or PetState.Dance => _skinnedModel.FindAnimationIndex("Jump", _skinnedModel.FindAnimationIndex("Idle")),
-                _ => _skinnedModel.FindAnimationIndex("Idle"),
+                PetState.Walk => _skinnedModel.FindAnimationIndex("Run", idleIdx),
+                PetState.WalkToSleep => _skinnedModel.FindAnimationIndex("Run", idleIdx),
+                PetState.Chase => _skinnedModel.FindAnimationIndex("Run", idleIdx),
+                PetState.Fall => _skinnedModel.FindAnimationIndex("Fall", idleIdx),
+                PetState.Climb => _skinnedModel.FindAnimationIndex("Climb", idleIdx),
+                PetState.Eat or PetState.Dance => _skinnedModel.FindAnimationIndex("Jump", idleIdx),
+                _ => idleIdx,
             };
             _skinnedModel.Pose(animIdx, _animTime);
 

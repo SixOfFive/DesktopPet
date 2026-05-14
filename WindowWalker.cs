@@ -109,7 +109,7 @@ internal sealed class WindowWalker : IPetBehavior
         {
             _vy = MathF.Min(_vy + Gravity * dt, MaxFallSpeed);
             _position.Y += _vy * dt;
-            State = PetState.Idle;
+            State = PetState.Fall;
 
             if (groundUnder.HasValue && _position.Y + _size.Height >= groundUnder.Value)
             {

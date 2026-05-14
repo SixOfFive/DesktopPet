@@ -41,6 +41,8 @@ internal sealed class SkinnedModel : IDisposable
     public required Texture? BaseTexture { get; init; }
     public required SkinnedAnimation[] Animations { get; init; }
     public required Dictionary<string, int> AnimationByName { get; init; }
+    public required IProceduralAnimation[] ProceduralAnimations { get; init; }
+    public required Dictionary<string, int> NodeNameToIndex { get; init; }
     public required Vector3 Min { get; init; }
     public required Vector3 Max { get; init; }
 
@@ -66,7 +68,10 @@ internal sealed class SkinnedModel : IDisposable
 
     public int FindAnimationIndex(string name, int fallback = 0)
     {
-        return AnimationByName.TryGetValue(name, out int idx) ? idx : fallback;
+        if (AnimationByName.TryGetValue(name, out int idx)) return idx;
+        for (int i = 0; i < ProceduralAnimations.Length; i++)
+            if (ProceduralAnimations[i].Name == name) return Animations.Length + i;
+        return fallback;
     }
 
     public void Pose(int animIndex, float time)
@@ -85,6 +90,12 @@ internal sealed class SkinnedModel : IDisposable
             foreach (var (idx, s) in anim.Translation) _tBuf[idx] = s.GetPoint(t);
             foreach (var (idx, s) in anim.Rotation)    _rBuf[idx] = s.GetPoint(t);
             foreach (var (idx, s) in anim.Scale)       _sBuf[idx] = s.GetPoint(t);
+        }
+        else
+        {
+            int procIdx = animIndex - Animations.Length;
+            if (procIdx >= 0 && procIdx < ProceduralAnimations.Length)
+                ProceduralAnimations[procIdx].Evaluate(time, _tBuf, _rBuf, _sBuf, NodeNameToIndex);
         }
 
         for (int i = 0; i < Nodes.Length; i++)
