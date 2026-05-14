@@ -27,7 +27,8 @@ internal static class Program
         var initialPath = modelPaths.FirstOrDefault(p =>
             Path.GetFileName(p).Equals("animal-cat.glb", StringComparison.OrdinalIgnoreCase))
             ?? modelPaths[0];
-        var currentSelection = new PetSelection(initialPath, BehaviorKind.FreeWander);
+        var currentSelection = LoadSavedSelection(settings, modelPaths)
+            ?? new PetSelection(initialPath, BehaviorKind.FreeWander);
 
         int initialSize = LayeredPetForm.SizeForMultiplier(settings.SizeMultiplier);
 
@@ -38,12 +39,17 @@ internal static class Program
         using var tray = new TrayIcon(groups, currentSelection);
         using var form = new LayeredPetForm(scene);
         form.SetRenderSize(initialSize);
+        ApplySelection(currentSelection, scene, form);
 
         tray.ExitRequested += (_, _) => Application.ExitThread();
 
         tray.PetSelected += (_, selection) =>
         {
             currentSelection = selection;
+            settings.SelectedModelPath = selection.ModelPath;
+            settings.SelectedBehavior = selection.Behavior.ToString();
+            settings.SelectedTexturePath = selection.TexturePath;
+            settings.Save();
             ApplySelection(selection, scene, form);
         };
 
@@ -98,6 +104,17 @@ internal static class Program
         if (characters.Count > 0)
             groups.Add(new TrayMenuGroup("Characters", characters));
         return groups;
+    }
+
+    private static PetSelection? LoadSavedSelection(Settings settings, string[] availableModels)
+    {
+        if (string.IsNullOrEmpty(settings.SelectedModelPath)) return null;
+        if (!File.Exists(settings.SelectedModelPath)) return null;
+        if (!Enum.TryParse<BehaviorKind>(settings.SelectedBehavior ?? "", out var kind))
+            kind = BehaviorKind.FreeWander;
+        var tex = settings.SelectedTexturePath;
+        if (tex != null && !File.Exists(tex)) tex = null;
+        return new PetSelection(settings.SelectedModelPath, kind, tex);
     }
 
     private static TrayMenuEntry BuildPetEntry(string modelPath, BehaviorKind behavior)

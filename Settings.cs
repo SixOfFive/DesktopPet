@@ -7,6 +7,9 @@ namespace Neko;
 internal sealed class Settings
 {
     public float SizeMultiplier { get; set; } = 1.0f;
+    public string? SelectedModelPath { get; set; }
+    public string? SelectedBehavior { get; set; }
+    public string? SelectedTexturePath { get; set; }
 
     public const float MinMultiplier = 0.25f;
     public const float MaxMultiplier = 4.0f;
