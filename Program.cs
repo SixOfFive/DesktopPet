@@ -28,7 +28,7 @@ internal static class Program
         var initial = new PetSelection(initialPath, BehaviorKind.FreeWander);
 
         using var glHost = new Renderer.GlHost();
-        using var scene = new Renderer.Scene(glHost.Gl, initialPath, LayeredPetForm.RenderSize, LayeredPetForm.RenderSize);
+        using var scene = new Renderer.Scene(glHost.Gl, initialPath, LayeredPetForm.CubePetRenderSize, LayeredPetForm.CubePetRenderSize);
 
         var groups = BuildMenuGroups(modelPaths);
         using var tray = new TrayIcon(groups, initial);
@@ -37,7 +37,11 @@ internal static class Program
         tray.ExitRequested += (_, _) => Application.ExitThread();
         tray.PetSelected += (_, selection) =>
         {
-            if (IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex))
+            bool isSkinned = IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex);
+            int size = isSkinned ? LayeredPetForm.CharacterRenderSize : LayeredPetForm.CubePetRenderSize;
+            form.SetRenderSize(size);
+            scene.Resize(size, size);
+            if (isSkinned)
                 scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
             else
                 scene.LoadModel(selection.ModelPath);

@@ -74,13 +74,13 @@ void main() {
     private SkinnedModel? _skinnedModel;
     private readonly Shader _shader;
     private readonly Shader _skinnedShader;
-    private readonly uint _fbo;
-    private readonly uint _colorTex;
-    private readonly uint _depthRbo;
-    private readonly int _width;
-    private readonly int _height;
-    private readonly byte[] _pixelBuffer;
-    private readonly Bitmap _bitmap;
+    private uint _fbo;
+    private uint _colorTex;
+    private uint _depthRbo;
+    private int _width;
+    private int _height;
+    private byte[] _pixelBuffer;
+    private Bitmap _bitmap;
 
     private Vector3 _cameraTarget;
     private Vector3 _cameraPos;
@@ -104,6 +104,27 @@ void main() {
         _shader = new Shader(gl, VertexSrc, FragmentSrc);
         _skinnedShader = new Shader(gl, SkinnedVertexSrc, FragmentSrc);
         ApplyModel(GltfLoader.Load(gl, modelPath));
+
+        _pixelBuffer = Array.Empty<byte>();
+        _bitmap = new Bitmap(1, 1, GdiPixelFormat.Format32bppPArgb);
+        AllocateRenderTarget(width, height);
+    }
+
+    public void Resize(int width, int height)
+    {
+        if (width == _width && height == _height) return;
+        AllocateRenderTarget(width, height);
+    }
+
+    private void AllocateRenderTarget(int width, int height)
+    {
+        if (_fbo != 0) _gl.DeleteFramebuffer(_fbo);
+        if (_colorTex != 0) _gl.DeleteTexture(_colorTex);
+        if (_depthRbo != 0) _gl.DeleteRenderbuffer(_depthRbo);
+        _bitmap.Dispose();
+
+        _width = width;
+        _height = height;
 
         _fbo = _gl.GenFramebuffer();
         _colorTex = _gl.GenTexture();

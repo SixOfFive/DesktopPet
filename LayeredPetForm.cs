@@ -7,16 +7,19 @@ namespace Neko;
 
 internal sealed class LayeredPetForm : Form
 {
-    public static int RenderSize { get; } = ComputeRenderSize();
+    public const int CubePetRenderSize = 128;
+    public static int CharacterRenderSize { get; } = ComputeCharacterSize();
     private const int FrameIntervalMs = 16;
 
-    private static int ComputeRenderSize()
+    private static int ComputeCharacterSize()
     {
         var h = Screen.PrimaryScreen?.Bounds.Height ?? 1080;
         int size = h * 18 / 100;
         size = (size + 8) / 16 * 16;
         return Math.Clamp(size, 96, 512);
     }
+
+    public int CurrentRenderSize { get; private set; } = CubePetRenderSize;
 
     private IPetBehavior _pet;
     private readonly Renderer.Scene _scene;
@@ -35,7 +38,7 @@ internal sealed class LayeredPetForm : Form
         ShowInTaskbar = false;
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
-        Size = new Size(RenderSize, RenderSize);
+        Size = new Size(CurrentRenderSize, CurrentRenderSize);
 
         _screenArea = Screen.PrimaryScreen?.WorkingArea
             ?? new Rectangle(0, 0, 1920, 1080);
@@ -86,7 +89,7 @@ internal sealed class LayeredPetForm : Form
     private void RenderAndPush()
     {
         if (!IsHandleCreated) return;
-        _zParticles.Update(_lastDelta, _pet.State == PetState.Sleep, RenderSize);
+        _zParticles.Update(_lastDelta, _pet.State == PetState.Sleep, CurrentRenderSize);
         var bmp = _scene.Render(_pet.Yaw, _pet.State, _pet.SleepTwitch, (float)_lastDelta);
         _zParticles.Draw(bmp);
         PushLayered(bmp);
@@ -120,6 +123,13 @@ internal sealed class LayeredPetForm : Form
             DeleteDC(memDc);
             ReleaseDC(IntPtr.Zero, screenDc);
         }
+    }
+
+    public void SetRenderSize(int size)
+    {
+        if (size == CurrentRenderSize) return;
+        CurrentRenderSize = size;
+        Size = new Size(size, size);
     }
 
     public void SetBehavior(BehaviorKind kind)
