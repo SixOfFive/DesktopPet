@@ -11,8 +11,15 @@ namespace Neko.Renderer;
 
 internal static class GltfLoader
 {
-    public static AnimatedModel Load(GL gl, string path)
+    public static AnimatedModel Load(GL gl, string path, string? textureOverridePath = null)
     {
+        GLTexture? overrideTex = null;
+        if (textureOverridePath != null && File.Exists(textureOverridePath))
+        {
+            using var bmp = new Bitmap(textureOverridePath);
+            overrideTex = new GLTexture(gl, BitmapToRgba(bmp), bmp.Width, bmp.Height);
+        }
+
         var model = ModelRoot.Load(path);
         var scene = model.DefaultScene ?? model.LogicalScenes[0];
 
@@ -59,7 +66,11 @@ internal static class GltfLoader
             foreach (var primitive in src.Mesh.Primitives)
             {
                 var built = BuildPrimitive(gl, primitive, textureCache, restWorld[i], ref min, ref max);
-                if (built != null) primList.Add(built);
+                if (built != null)
+                {
+                    if (overrideTex != null) built.Texture = overrideTex;
+                    primList.Add(built);
+                }
             }
             if (primList.Count > 0) meshesByNode[i] = primList;
         }
@@ -75,6 +86,9 @@ internal static class GltfLoader
             animsByName[anims[ai].Name] = ai;
         }
 
+        var ownedTextures = new List<GLTexture>(textureCache.Values);
+        if (overrideTex != null) ownedTextures.Add(overrideTex);
+
         return new AnimatedModel(nodeCount)
         {
             Nodes = nodes,
@@ -83,6 +97,7 @@ internal static class GltfLoader
             AnimationByName = animsByName,
             Min = min,
             Max = max,
+            OwnedTextures = ownedTextures,
         };
     }
 

@@ -96,14 +96,14 @@ void main() {
     private PetState _lastState = (PetState)(-1);
     private bool _lastSleepTwitch;
 
-    public Scene(GL gl, string modelPath, int width, int height)
+    public Scene(GL gl, string modelPath, int width, int height, string? textureOverridePath = null)
     {
         _gl = gl;
         _width = width;
         _height = height;
         _shader = new Shader(gl, VertexSrc, FragmentSrc);
         _skinnedShader = new Shader(gl, SkinnedVertexSrc, FragmentSrc);
-        ApplyModel(GltfLoader.Load(gl, modelPath));
+        ApplyModel(GltfLoader.Load(gl, modelPath, textureOverridePath));
 
         _pixelBuffer = Array.Empty<byte>();
         _bitmap = new Bitmap(1, 1, GdiPixelFormat.Format32bppPArgb);
@@ -159,9 +159,9 @@ void main() {
         _bitmap = new Bitmap(width, height, GdiPixelFormat.Format32bppPArgb);
     }
 
-    public void LoadModel(string path)
+    public void LoadModel(string path, string? textureOverridePath = null)
     {
-        var next = GltfLoader.Load(_gl, path);
+        var next = GltfLoader.Load(_gl, path, textureOverridePath);
         var prev = _model;
         var prevSkin = _skinnedModel;
         _skinnedModel = null;

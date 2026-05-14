@@ -31,8 +31,12 @@ internal static class Program
 
         int initialSize = LayeredPetForm.SizeForMultiplier(settings.SizeMultiplier);
 
+        string? initialSkin = null;
+        var initialSkinPath = Path.ChangeExtension(initialPath, null) + "-skin.png";
+        if (File.Exists(initialSkinPath)) initialSkin = initialSkinPath;
+
         using var glHost = new Renderer.GlHost();
-        using var scene = new Renderer.Scene(glHost.Gl, initialPath, initialSize, initialSize);
+        using var scene = new Renderer.Scene(glHost.Gl, initialPath, initialSize, initialSize, initialSkin);
 
         var groups = BuildMenuGroups(modelPaths);
         using var tray = new TrayIcon(groups, currentSelection);
@@ -72,9 +76,14 @@ internal static class Program
     private static void ApplySelection(PetSelection selection, Renderer.Scene scene, LayeredPetForm form)
     {
         if (IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex))
+        {
             scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
+        }
         else
-            scene.LoadModel(selection.ModelPath);
+        {
+            var skinPath = Path.ChangeExtension(selection.ModelPath, null) + "-skin.png";
+            scene.LoadModel(selection.ModelPath, File.Exists(skinPath) ? skinPath : null);
+        }
         form.SetBehavior(selection.Behavior);
     }
 

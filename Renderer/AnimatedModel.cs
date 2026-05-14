@@ -29,6 +29,7 @@ internal sealed class AnimatedModel : IDisposable
     public required Dictionary<string, int> AnimationByName { get; init; }
     public required Vector3 Min { get; init; }
     public required Vector3 Max { get; init; }
+    public required IReadOnlyList<Texture> OwnedTextures { get; init; }
     public Vector3 Center => (Min + Max) * 0.5f;
     public float MaxDim => MathF.Max(Max.X - Min.X, MathF.Max(Max.Y - Min.Y, Max.Z - Min.Z));
 
@@ -83,5 +84,7 @@ internal sealed class AnimatedModel : IDisposable
     {
         foreach (var list in MeshesByNodeIndex.Values)
             foreach (var m in list) m.Dispose();
+        foreach (var tex in OwnedTextures)
+            tex.Dispose();
     }
 }
