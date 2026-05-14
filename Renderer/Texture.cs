@@ -18,11 +18,10 @@ internal sealed class Texture : IDisposable
                 (uint)width, (uint)height, 0,
                 GLEnum.Rgba, GLEnum.UnsignedByte, p);
         }
-        _gl.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.LinearMipmapNearest);
+        _gl.TexParameter(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)GLEnum.Nearest);
         _gl.TexParameter(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)GLEnum.Nearest);
         _gl.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapS, (int)GLEnum.ClampToEdge);
         _gl.TexParameter(GLEnum.Texture2D, GLEnum.TextureWrapT, (int)GLEnum.ClampToEdge);
-        _gl.GenerateMipmap(GLEnum.Texture2D);
     }
 
     public void Bind(uint unit)
