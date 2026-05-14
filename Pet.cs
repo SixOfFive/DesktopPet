@@ -14,7 +14,7 @@ internal enum PetState
     WalkToSleep,
 }
 
-internal sealed class Pet
+internal sealed class Pet : IPetBehavior
 {
     private const float WalkSpeed = 80f;
     private const float ChaseSpeed = 220f;

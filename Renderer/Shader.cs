@@ -55,6 +55,13 @@ internal sealed class Shader : IDisposable
         _gl.UniformMatrix4(Loc(name), 1, false, (float*)&m);
     }
 
+    public unsafe void SetMat4Array(string name, Matrix4x4[] mats)
+    {
+        if (mats.Length == 0) return;
+        fixed (Matrix4x4* p = mats)
+            _gl.UniformMatrix4(Loc(name), (uint)mats.Length, false, (float*)p);
+    }
+
     public unsafe void SetMat3FromMat4(string name, Matrix4x4 m)
     {
         float* data = stackalloc float[9]

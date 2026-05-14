@@ -42,9 +42,38 @@ void main() {
 }
 ";
 
+    private const string SkinnedVertexSrc = @"#version 330 core
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNormal;
+layout(location=2) in vec2 aUv;
+layout(location=3) in vec4 aColor;
+layout(location=4) in ivec4 aJoints;
+layout(location=5) in vec4 aWeights;
+uniform mat4 uMVP;
+uniform mat3 uNormal;
+uniform mat4 uJoints[64];
+out vec3 vNormal;
+out vec2 vUv;
+out vec4 vColor;
+void main() {
+    mat4 skin = uJoints[aJoints.x] * aWeights.x
+              + uJoints[aJoints.y] * aWeights.y
+              + uJoints[aJoints.z] * aWeights.z
+              + uJoints[aJoints.w] * aWeights.w;
+    vec4 pos = skin * vec4(aPos, 1.0);
+    vec3 nrm = mat3(skin) * aNormal;
+    gl_Position = uMVP * pos;
+    vNormal = normalize(uNormal * nrm);
+    vUv = aUv;
+    vColor = aColor;
+}
+";
+
     private readonly GL _gl;
-    private AnimatedModel _model;
+    private AnimatedModel? _model;
+    private SkinnedModel? _skinnedModel;
     private readonly Shader _shader;
+    private readonly Shader _skinnedShader;
     private readonly uint _fbo;
     private readonly uint _colorTex;
     private readonly uint _depthRbo;
@@ -73,7 +102,7 @@ void main() {
         _width = width;
         _height = height;
         _shader = new Shader(gl, VertexSrc, FragmentSrc);
-        _model = null!;
+        _skinnedShader = new Shader(gl, SkinnedVertexSrc, FragmentSrc);
         ApplyModel(GltfLoader.Load(gl, modelPath));
 
         _fbo = _gl.GenFramebuffer();
@@ -113,13 +142,39 @@ void main() {
     {
         var next = GltfLoader.Load(_gl, path);
         var prev = _model;
+        var prevSkin = _skinnedModel;
+        _skinnedModel = null;
         ApplyModel(next);
         prev?.Dispose();
+        prevSkin?.Dispose();
+    }
+
+    public void LoadSkinnedModel(string meshGlb, IEnumerable<string> animGlbs, string? texturePath)
+    {
+        var next = SkinnedLoader.Load(_gl, meshGlb, animGlbs, texturePath);
+        var prev = _model;
+        var prevSkin = _skinnedModel;
+        _model = null;
+        _skinnedModel = next;
+        FrameCamera(next.Center, next.MaxDim, next.Min.Y);
+        _animTime = 0;
+        _lastState = (PetState)(-1);
+        prev?.Dispose();
+        prevSkin?.Dispose();
+    }
+
+    private void FrameCamera(Vector3 center, float maxDim, float minY)
+    {
+        float dist = MathF.Max(maxDim * 2.2f, 2f);
+        float halfExtent = dist * MathF.Tan(MathF.PI / 10f);
+        _cameraTarget = new Vector3(center.X, minY + halfExtent, center.Z);
+        _cameraPos = _cameraTarget + new Vector3(0, dist * 0.35f, dist);
     }
 
     private void ApplyModel(AnimatedModel model)
     {
         _model = model;
+        _skinnedModel = null;
         _idleAnim = _model.FindAnimationIndex("idle");
         _walkAnim = _model.FindAnimationIndex("walk", _idleAnim);
         _runAnim = _model.FindAnimationIndex("run", _walkAnim);
@@ -127,9 +182,7 @@ void main() {
         _eatAnim = _model.FindAnimationIndex("eat", _idleAnim);
         _danceAnim = _model.FindAnimationIndex("dance", _idleAnim);
 
-        _cameraTarget = _model.Center;
-        float dist = MathF.Max(_model.MaxDim * 2.2f, 2f);
-        _cameraPos = _cameraTarget + new Vector3(0, dist * 0.35f, dist);
+        FrameCamera(_model.Center, _model.MaxDim, _model.Min.Y);
         _animTime = 0;
         _lastState = (PetState)(-1);
     }
@@ -146,19 +199,6 @@ void main() {
         float timeScale = state == PetState.Sleep && !sleepTwitch ? 0.3f : 1f;
         _animTime += deltaSeconds * timeScale;
 
-        int animIdx = (state, sleepTwitch) switch
-        {
-            (PetState.Sleep, true) => _walkAnim,
-            (PetState.Walk, _) => _walkAnim,
-            (PetState.WalkToSleep, _) => _walkAnim,
-            (PetState.Chase, _) => _runAnim,
-            (PetState.Sleep, _) => _sleepAnim,
-            (PetState.Eat, _) => _eatAnim,
-            (PetState.Dance, _) => _danceAnim,
-            _ => _idleAnim,
-        };
-        _model.Pose(animIdx, _animTime);
-
         _gl.BindFramebuffer(GLEnum.Framebuffer, _fbo);
         _gl.Viewport(0, 0, (uint)_width, (uint)_height);
         _gl.Enable(GLEnum.DepthTest);
@@ -166,15 +206,13 @@ void main() {
         _gl.ClearColor(0, 0, 0, 0);
         _gl.Clear((uint)(GLEnum.ColorBufferBit | GLEnum.DepthBufferBit));
 
-        _shader.Use();
-        _shader.SetInt("uTex", 0);
-
+        var center = _model?.Center ?? _skinnedModel!.Center;
         var rootRotation = state == PetState.Sleep
             ? Matrix4x4.CreateRotationZ(MathF.PI / 2f)
             : Matrix4x4.CreateRotationY(yaw);
-        var rootTransform = Matrix4x4.CreateTranslation(-_model.Center)
+        var rootTransform = Matrix4x4.CreateTranslation(-center)
             * rootRotation
-            * Matrix4x4.CreateTranslation(_model.Center);
+            * Matrix4x4.CreateTranslation(center);
         var view = Matrix4x4.CreateLookAt(_cameraPos, _cameraTarget, Vector3.UnitY);
         var proj = Matrix4x4.CreatePerspectiveFieldOfView(
             MathF.PI / 5f,
@@ -182,14 +220,52 @@ void main() {
             0.1f, 100f);
         var viewProj = view * proj;
 
-        foreach (var (nodeIdx, meshList) in _model.MeshesByNodeIndex)
+        if (_model != null)
         {
-            var modelMat = _model.WorldMatrices[nodeIdx] * rootTransform;
-            var mvp = modelMat * viewProj;
-            _shader.SetMat4("uMVP", mvp);
-            _shader.SetMat3FromMat4("uNormal", modelMat);
-            foreach (var mesh in meshList)
-                mesh.Draw();
+            int animIdx = (state, sleepTwitch) switch
+            {
+                (PetState.Sleep, true) => _walkAnim,
+                (PetState.Walk, _) => _walkAnim,
+                (PetState.WalkToSleep, _) => _walkAnim,
+                (PetState.Chase, _) => _runAnim,
+                (PetState.Sleep, _) => _sleepAnim,
+                (PetState.Eat, _) => _eatAnim,
+                (PetState.Dance, _) => _danceAnim,
+                _ => _idleAnim,
+            };
+            _model.Pose(animIdx, _animTime);
+
+            _shader.Use();
+            _shader.SetInt("uTex", 0);
+            foreach (var (nodeIdx, meshList) in _model.MeshesByNodeIndex)
+            {
+                var modelMat = _model.WorldMatrices[nodeIdx] * rootTransform;
+                var mvp = modelMat * viewProj;
+                _shader.SetMat4("uMVP", mvp);
+                _shader.SetMat3FromMat4("uNormal", modelMat);
+                foreach (var mesh in meshList)
+                    mesh.Draw();
+            }
+        }
+        else if (_skinnedModel != null)
+        {
+            int animIdx = state switch
+            {
+                PetState.Walk => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
+                PetState.WalkToSleep => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
+                PetState.Chase => _skinnedModel.FindAnimationIndex("Run", _skinnedModel.FindAnimationIndex("Idle")),
+                PetState.Eat or PetState.Dance => _skinnedModel.FindAnimationIndex("Jump", _skinnedModel.FindAnimationIndex("Idle")),
+                _ => _skinnedModel.FindAnimationIndex("Idle"),
+            };
+            _skinnedModel.Pose(animIdx, _animTime);
+
+            _skinnedShader.Use();
+            _skinnedShader.SetInt("uTex", 0);
+            var mvp = rootTransform * viewProj;
+            _skinnedShader.SetMat4("uMVP", mvp);
+            _skinnedShader.SetMat3FromMat4("uNormal", rootTransform);
+            _skinnedShader.SetMat4Array("uJoints", _skinnedModel.JointMatrices);
+            _skinnedModel.Draw();
         }
 
         unsafe
@@ -238,8 +314,10 @@ void main() {
 
     public void Dispose()
     {
-        _model.Dispose();
+        _model?.Dispose();
+        _skinnedModel?.Dispose();
         _shader.Dispose();
+        _skinnedShader.Dispose();
         _gl.DeleteFramebuffer(_fbo);
         _gl.DeleteTexture(_colorTex);
         _gl.DeleteRenderbuffer(_depthRbo);

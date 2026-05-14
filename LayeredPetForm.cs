@@ -10,13 +10,14 @@ internal sealed class LayeredPetForm : Form
     public const int RenderSize = 128;
     private const int FrameIntervalMs = 16;
 
-    private readonly Pet _pet;
+    private IPetBehavior _pet;
     private readonly Renderer.Scene _scene;
     private readonly ZParticles _zParticles = new();
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private TimeSpan _lastTick;
     private double _lastDelta;
+    private Rectangle _screenArea;
 
     public LayeredPetForm(Renderer.Scene scene)
     {
@@ -28,9 +29,9 @@ internal sealed class LayeredPetForm : Form
         StartPosition = FormStartPosition.Manual;
         Size = new Size(RenderSize, RenderSize);
 
-        var screen = Screen.PrimaryScreen?.WorkingArea
+        _screenArea = Screen.PrimaryScreen?.WorkingArea
             ?? new Rectangle(0, 0, 1920, 1080);
-        _pet = new Pet(screen, Size);
+        _pet = new Pet(_screenArea, Size);
 
         _timer = new System.Windows.Forms.Timer { Interval = FrameIntervalMs };
         _timer.Tick += OnTick;
@@ -111,6 +112,15 @@ internal sealed class LayeredPetForm : Form
             DeleteDC(memDc);
             ReleaseDC(IntPtr.Zero, screenDc);
         }
+    }
+
+    public void SetBehavior(BehaviorKind kind)
+    {
+        _pet = kind switch
+        {
+            BehaviorKind.WindowWalker => new WindowWalker(_screenArea, Size, Handle),
+            _ => new Pet(_screenArea, Size),
+        };
     }
 
     protected override void Dispose(bool disposing)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -24,20 +25,70 @@ internal static class Program
         var initialPath = modelPaths.FirstOrDefault(p =>
             Path.GetFileName(p).Equals("animal-cat.glb", StringComparison.OrdinalIgnoreCase))
             ?? modelPaths[0];
+        var initial = new PetSelection(initialPath, BehaviorKind.FreeWander);
 
         using var glHost = new Renderer.GlHost();
         using var scene = new Renderer.Scene(glHost.Gl, initialPath, LayeredPetForm.RenderSize, LayeredPetForm.RenderSize);
 
-        var models = modelPaths.Select(p => (Name: PrettyName(p), Path: p));
-        using var tray = new TrayIcon(models, initialPath);
+        var groups = BuildMenuGroups(modelPaths);
+        using var tray = new TrayIcon(groups, initial);
         using var form = new LayeredPetForm(scene);
 
         tray.ExitRequested += (_, _) => Application.ExitThread();
-        tray.ModelChangeRequested += (_, path) => scene.LoadModel(path);
+        tray.PetSelected += (_, selection) =>
+        {
+            if (IsSkinnedCharacter(selection.ModelPath, out var anims, out var tex))
+                scene.LoadSkinnedModel(selection.ModelPath, anims, tex);
+            else
+                scene.LoadModel(selection.ModelPath);
+            form.SetBehavior(selection.Behavior);
+        };
 
         form.Show();
 
         Application.Run();
+    }
+
+    private static IEnumerable<TrayMenuGroup> BuildMenuGroups(string[] modelPaths)
+    {
+        var pets = modelPaths
+            .Select(p => new TrayMenuEntry(PrettyName(p), p, BehaviorKind.FreeWander))
+            .ToArray();
+
+        var monkey = modelPaths.FirstOrDefault(p =>
+            Path.GetFileName(p).Equals("animal-monkey.glb", StringComparison.OrdinalIgnoreCase))
+            ?? modelPaths[0];
+
+        var charactersDir = Path.Combine(AppContext.BaseDirectory, "characters");
+        var zombieMesh = Path.Combine(charactersDir, "characterMedium.glb");
+        var characters = new List<TrayMenuEntry>
+        {
+            new("Window Walker", monkey, BehaviorKind.WindowWalker),
+        };
+        if (File.Exists(zombieMesh))
+            characters.Add(new TrayMenuEntry("Zombie", zombieMesh, BehaviorKind.WindowWalker));
+
+        return new[]
+        {
+            new TrayMenuGroup("Pets", pets),
+            new TrayMenuGroup("Characters", characters),
+        };
+    }
+
+    private static bool IsSkinnedCharacter(string path, out string[] animGlbs, out string? texture)
+    {
+        animGlbs = Array.Empty<string>();
+        texture = null;
+        var dir = Path.GetDirectoryName(path);
+        if (dir == null || !Path.GetFileName(dir).Equals("characters", StringComparison.OrdinalIgnoreCase))
+            return false;
+        animGlbs = new[] { "idle.glb", "jump.glb", "run.glb" }
+            .Select(f => Path.Combine(dir, f))
+            .Where(File.Exists)
+            .ToArray();
+        var tex = Path.Combine(dir, "zombieMaleA.png");
+        texture = File.Exists(tex) ? tex : null;
+        return true;
     }
 
     private static string[] DiscoverModels()
