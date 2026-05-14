@@ -20,8 +20,9 @@ A small wandering 3D pet that lives on your Windows desktop. Comes with cube ani
 - **Zombie** (skinned humanoid)
 - Recognizes top edges of other windows as ground; walks along them
 - Falls when a window moves out from under it — tumble animation while airborne
+- **Climbs** vertical window edges (~55% chance at a viable edge) with a ~12%/sec grip-loss chance that drops him mid-climb into a fall
 - Hard landings end in a faceplant + head-shake recovery (procedural animations)
-- Climb animation is implemented but not yet triggered by behavior — see roadmap
+- Walk speed scales with pet size so the run cycle matches forward motion
 
 ## Installing (end users)
 
@@ -33,7 +34,7 @@ During install you can opt in to:
 
 Right-click the tray icon → **Exit** to quit. Uninstall from Settings → Apps as usual.
 
-The pet auto-scales to your screen height — roughly 18% of vertical pixels, rounded to a multiple of 16, clamped to [96, 512]. 1080p gets ~192 px, 1440p ~256 px, 4K ~384 px.
+**Size**: the tray menu has a `Size` submenu with Half / Regular / Double options that stack multiplicatively (Double → Double = ×4). Range is 32 px to 512 px. The current size, last-selected pet, and last-selected texture variant all persist between runs in `%LocalAppData%\Neko\settings.json`.
 
 ## Running from source
 
@@ -69,10 +70,11 @@ Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bun
 
 Every cube pet samples colors from a shared 512×512 palette (`colormap.png`). You can recolor one pet without affecting the others by dropping PNGs named `<modelname>-<variant>.png` in the [`skins/`](skins/) folder. The build copies them next to the GLB and the tray menu turns any pet with one or more variants into a submenu: **Default** (the original Kenney colormap) plus one entry per variant.
 
-Two bundled variants, both modeled on the author's real pets:
+Three bundled variants, all modeled on the author's real pets:
 
-- **Cat → Tibbs** (`skins/animal-cat-tibbs.png`) — work-in-progress brown tabby. The cube cat samples cells (3,3) and (3,2). Charlie (the author's actual current cat) is coming next.
-- **Dog → Chewy** (`skins/animal-dog-chewy.png`) — Rottweiler black-and-tan. Most cells filled near-black for the body; cell (1,2) holds the rust-tan that the leg UVs sample.
+- **Cat → Tibbs** (`skins/animal-cat-tibbs.png`) — grey/black tabby with Y-axis banding inside cells (3,3), (3,2), and (0,2).
+- **Cat → Charlie** (`skins/animal-cat-charlie.png`) — fluffy white with a grey patch at the top of (3,3) for the back/saddle. Face stays white because (0,2) and (3,2) are left untouched.
+- **Dog → Chewy** (`skins/animal-dog-chewy.png`) — Rottweiler black-and-tan with white eyes and pink tongue. Cell (0,2) is band-split (black top / white eye band / tan muzzle), cell (1,2) is split top-black / bottom-tan to keep the body black while the muzzle reads tan.
 
 To add your own:
 1. Copy `kenney_cube-pets_1.0/Models/GLB format/Textures/colormap.png` to `skins/<modelname>-<variant>.png` (e.g. `animal-cat-charlie.png`).
@@ -130,12 +132,13 @@ A hidden Silk.NET OpenGL 3.3 context renders the model into an offscreen framebu
 
 ## Roadmap
 
-- [ ] Climb behavior — detect vertical window edges, climb up them, fall when out of grip (animation already in place)
-- [ ] More skin variants (human male/female, zombie female) as separate tray entries
+- [x] Climb behavior — detect vertical window edges, climb up them, fall when out of grip *(v1.1)*
+- [x] Tray submenu for size with persistent settings *(v1.1)*
+- [ ] More zombie skin variants (human male/female, zombie female) as separate tray entries
 - [ ] Multi-monitor support (use `SystemInformation.VirtualScreen`)
 - [ ] Click-to-pet interaction (handle mouse events without breaking click-through)
-- [ ] Settings file / tray menu for size, speed, notice distance
 - [ ] Mixamo animation grafting for richer character clips
+- [ ] Sleeping-eyes texture variant for cube pets (half-closed eye trick)
 
 ## Credits & licenses
 
