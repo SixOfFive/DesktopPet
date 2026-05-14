@@ -15,6 +15,7 @@ internal sealed class LayeredPetForm : Form
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private TimeSpan _lastTick;
+    private double _lastDelta;
 
     public LayeredPetForm(Renderer.Scene scene)
     {
@@ -64,6 +65,7 @@ internal sealed class LayeredPetForm : Form
         var now = _stopwatch.Elapsed;
         var delta = (now - _lastTick).TotalSeconds;
         _lastTick = now;
+        _lastDelta = delta;
 
         _pet.Update(delta, Cursor.Position);
 
@@ -74,7 +76,7 @@ internal sealed class LayeredPetForm : Form
     private void RenderAndPush()
     {
         if (!IsHandleCreated) return;
-        var bmp = _scene.Render(_pet.Yaw);
+        var bmp = _scene.Render(_pet.Yaw, _pet.State, (float)_lastDelta);
         PushLayered(bmp);
     }
 

@@ -43,7 +43,7 @@ void main() {
 ";
 
     private readonly GL _gl;
-    private readonly LoadedModel _model;
+    private readonly AnimatedModel _model;
     private readonly Shader _shader;
     private readonly uint _fbo;
     private readonly uint _colorTex;
@@ -56,6 +56,14 @@ void main() {
     private readonly Vector3 _cameraTarget;
     private readonly Vector3 _cameraPos;
 
+    private readonly int _idleAnim;
+    private readonly int _walkAnim;
+    private readonly int _runAnim;
+    private readonly int _sleepAnim;
+
+    private float _animTime;
+    private PetState _lastState = (PetState)(-1);
+
     public Scene(GL gl, string modelPath, int width, int height)
     {
         _gl = gl;
@@ -63,6 +71,11 @@ void main() {
         _height = height;
         _model = GltfLoader.Load(gl, modelPath);
         _shader = new Shader(gl, VertexSrc, FragmentSrc);
+
+        _idleAnim = _model.FindAnimationIndex("idle");
+        _walkAnim = _model.FindAnimationIndex("walk", _idleAnim);
+        _runAnim = _model.FindAnimationIndex("run", _walkAnim);
+        _sleepAnim = _model.FindAnimationIndex("idle", _idleAnim);
 
         _fbo = _gl.GenFramebuffer();
         _colorTex = _gl.GenTexture();
@@ -101,8 +114,26 @@ void main() {
         _cameraPos = _cameraTarget + new Vector3(0, dist * 0.35f, dist);
     }
 
-    public Bitmap Render(float yaw)
+    public Bitmap Render(float yaw, PetState state, float deltaSeconds)
     {
+        if (state != _lastState)
+        {
+            _animTime = 0;
+            _lastState = state;
+        }
+
+        float timeScale = state == PetState.Sleep ? 0.4f : 1f;
+        _animTime += deltaSeconds * timeScale;
+
+        int animIdx = state switch
+        {
+            PetState.Walk => _walkAnim,
+            PetState.Chase => _runAnim,
+            PetState.Sleep => _sleepAnim,
+            _ => _idleAnim,
+        };
+        _model.Pose(animIdx, _animTime);
+
         _gl.BindFramebuffer(GLEnum.Framebuffer, _fbo);
         _gl.Viewport(0, 0, (uint)_width, (uint)_height);
         _gl.Enable(GLEnum.DepthTest);
@@ -111,8 +142,9 @@ void main() {
         _gl.Clear((uint)(GLEnum.ColorBufferBit | GLEnum.DepthBufferBit));
 
         _shader.Use();
+        _shader.SetInt("uTex", 0);
 
-        var modelMat = Matrix4x4.CreateTranslation(-_model.Center)
+        var rootTransform = Matrix4x4.CreateTranslation(-_model.Center)
             * Matrix4x4.CreateRotationY(yaw)
             * Matrix4x4.CreateTranslation(_model.Center);
         var view = Matrix4x4.CreateLookAt(_cameraPos, _cameraTarget, Vector3.UnitY);
@@ -120,14 +152,17 @@ void main() {
             MathF.PI / 5f,
             (float)_width / _height,
             0.1f, 100f);
-        var mvp = modelMat * view * proj;
+        var viewProj = view * proj;
 
-        _shader.SetMat4("uMVP", mvp);
-        _shader.SetMat3FromMat4("uNormal", modelMat);
-        _shader.SetInt("uTex", 0);
-
-        foreach (var mesh in _model.Meshes)
-            mesh.Draw();
+        foreach (var (nodeIdx, meshList) in _model.MeshesByNodeIndex)
+        {
+            var modelMat = _model.WorldMatrices[nodeIdx] * rootTransform;
+            var mvp = modelMat * viewProj;
+            _shader.SetMat4("uMVP", mvp);
+            _shader.SetMat3FromMat4("uNormal", modelMat);
+            foreach (var mesh in meshList)
+                mesh.Draw();
+        }
 
         unsafe
         {
@@ -175,8 +210,7 @@ void main() {
 
     public void Dispose()
     {
-        foreach (var m in _model.Meshes)
-            m.Dispose();
+        _model.Dispose();
         _shader.Dispose();
         _gl.DeleteFramebuffer(_fbo);
         _gl.DeleteTexture(_colorTex);

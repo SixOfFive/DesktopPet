@@ -34,6 +34,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>pets\%(Filename)%(Extension)</Link>
     </Content>
+    <Content Include="kenney_cube-pets_1.0\Models\GLB format\Textures\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>pets\Textures\%(Filename)%(Extension)</Link>
+    </Content>
   </ItemGroup>
 
 </Project>
