@@ -59,24 +59,16 @@ internal static class Program
             .Select(p => new TrayMenuEntry(PrettyName(p), p, BehaviorKind.FreeWander))
             .ToArray();
 
-        var monkey = modelPaths.FirstOrDefault(p =>
-            Path.GetFileName(p).Equals("animal-monkey.glb", StringComparison.OrdinalIgnoreCase))
-            ?? modelPaths[0];
-
         var charactersDir = Path.Combine(AppContext.BaseDirectory, "characters");
         var zombieMesh = Path.Combine(charactersDir, "characterMedium.glb");
-        var characters = new List<TrayMenuEntry>
-        {
-            new("Window Walker", monkey, BehaviorKind.WindowWalker),
-        };
+        var characters = new List<TrayMenuEntry>();
         if (File.Exists(zombieMesh))
             characters.Add(new TrayMenuEntry("Zombie", zombieMesh, BehaviorKind.WindowWalker));
 
-        return new[]
-        {
-            new TrayMenuGroup("Pets", pets),
-            new TrayMenuGroup("Characters", characters),
-        };
+        var groups = new List<TrayMenuGroup> { new("Pets", pets) };
+        if (characters.Count > 0)
+            groups.Add(new TrayMenuGroup("Characters", characters));
+        return groups;
     }
 
     private static bool IsSkinnedCharacter(string path, out string[] animGlbs, out string? texture)

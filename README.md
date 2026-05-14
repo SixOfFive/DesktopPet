@@ -16,12 +16,12 @@ A small wandering 3D pet that lives on your Windows desktop. Comes with cube ani
 - After 60 seconds of cursor idle, walks back to the cursor and lies down to sleep
 - Sleeping pet gets floating animated Z's and occasional dream-twitches
 
-### Characters (window walkers)
-- **Window Walker** (cube monkey) and **Zombie** (skinned humanoid)
+### Characters
+- **Zombie** (skinned humanoid)
 - Recognizes top edges of other windows as ground; walks along them
-- Falls when a window moves out from under it — including a proper tumble animation
-- Hard landings end in a faceplant + head-shake recovery (zombie only — uses procedural animations)
-- Climb animation (zombie) is implemented but not yet triggered by behavior — see roadmap
+- Falls when a window moves out from under it — tumble animation while airborne
+- Hard landings end in a faceplant + head-shake recovery (procedural animations)
+- Climb animation is implemented but not yet triggered by behavior — see roadmap
 
 ## Installing (end users)
 
@@ -63,7 +63,7 @@ Output: `bin\Release\net9.0-windows\win-x64\publish\Neko.exe` — self-contained
 
 ## Picking a different pet
 
-Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bunny, cat, caterpillar, chick, cow, crab, deer, dog, elephant, fish, fox, giraffe, hog, koala, lion, monkey, panda, parrot, penguin, pig, polar bear, tiger) — or **Characters** for the Window Walker / Zombie.
+Right-click the tray icon → **Pets** for the 24 cube animals (beaver, bee, bunny, cat, caterpillar, chick, cow, crab, deer, dog, elephant, fish, fox, giraffe, hog, koala, lion, monkey, panda, parrot, penguin, pig, polar bear, tiger) — or **Characters → Zombie** to switch to the window-walking humanoid.
 
 ## How it works
 
