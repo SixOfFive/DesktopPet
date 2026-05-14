@@ -12,23 +12,41 @@ A small wandering 3D animal that lives on your Windows desktop and chases your c
 - Rotates smoothly to face its movement direction
 - System tray icon to exit
 
-## Running
+## Installing (end users)
 
-Requires the **.NET 9 SDK** (Windows).
+Grab `DesktopPet-Setup-<version>.exe` from [Releases](https://github.com/SixOfFive/DesktopPet/releases) and run it. The installer is self-contained — no .NET runtime required on the target machine.
+
+During install you can opt in to:
+- A desktop shortcut
+- **Launch on Windows startup** (creates a shortcut in your user Startup folder)
+
+Right-click the tray icon → **Exit** to quit. Uninstall from Settings → Apps as usual.
+
+## Running from source
+
+Requires the **.NET 9 SDK**.
 
 ```powershell
 dotnet run
 ```
 
-Right-click the tray icon → **Exit** to quit.
+## Building the installer
 
-## Building a single-file release
+Requires **Inno Setup 6** ([download](https://jrsoftware.org/isdl.php) or `winget install JRSoftware.InnoSetup`).
+
+```powershell
+pwsh -File build-installer.ps1
+```
+
+This runs `dotnet publish` then `iscc.exe installer.iss`. Output: `dist\DesktopPet-Setup-<version>.exe` (~35 MB).
+
+## Building just the executable
 
 ```powershell
 dotnet publish -c Release
 ```
 
-Output: `bin\Release\net9.0-windows\win-x64\publish\Neko.exe` — self-contained, no .NET runtime install needed on the target machine.
+Output: `bin\Release\net9.0-windows\win-x64\publish\Neko.exe` — self-contained portable build (drag the whole `publish/` folder anywhere and run).
 
 ## Picking a different pet
 

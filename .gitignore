@@ -14,6 +14,7 @@ CLAUDE.md
 # Build outputs
 out/
 publish/
+dist/
 *.exe
 *.pdb
 *.dll

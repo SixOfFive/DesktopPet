@@ -12,6 +12,7 @@ internal sealed class LayeredPetForm : Form
 
     private readonly Pet _pet;
     private readonly Renderer.Scene _scene;
+    private readonly ZParticles _zParticles = new();
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private TimeSpan _lastTick;
@@ -76,7 +77,9 @@ internal sealed class LayeredPetForm : Form
     private void RenderAndPush()
     {
         if (!IsHandleCreated) return;
-        var bmp = _scene.Render(_pet.Yaw, _pet.State, (float)_lastDelta);
+        _zParticles.Update(_lastDelta, _pet.State == PetState.Sleep, RenderSize);
+        var bmp = _scene.Render(_pet.Yaw, _pet.State, _pet.SleepTwitch, (float)_lastDelta);
+        _zParticles.Draw(bmp);
         PushLayered(bmp);
     }
 

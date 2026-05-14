@@ -43,7 +43,7 @@ void main() {
 ";
 
     private readonly GL _gl;
-    private readonly AnimatedModel _model;
+    private AnimatedModel _model;
     private readonly Shader _shader;
     private readonly uint _fbo;
     private readonly uint _colorTex;
@@ -53,29 +53,28 @@ void main() {
     private readonly byte[] _pixelBuffer;
     private readonly Bitmap _bitmap;
 
-    private readonly Vector3 _cameraTarget;
-    private readonly Vector3 _cameraPos;
+    private Vector3 _cameraTarget;
+    private Vector3 _cameraPos;
 
-    private readonly int _idleAnim;
-    private readonly int _walkAnim;
-    private readonly int _runAnim;
-    private readonly int _sleepAnim;
+    private int _idleAnim;
+    private int _walkAnim;
+    private int _runAnim;
+    private int _sleepAnim;
+    private int _eatAnim;
+    private int _danceAnim;
 
     private float _animTime;
     private PetState _lastState = (PetState)(-1);
+    private bool _lastSleepTwitch;
 
     public Scene(GL gl, string modelPath, int width, int height)
     {
         _gl = gl;
         _width = width;
         _height = height;
-        _model = GltfLoader.Load(gl, modelPath);
         _shader = new Shader(gl, VertexSrc, FragmentSrc);
-
-        _idleAnim = _model.FindAnimationIndex("idle");
-        _walkAnim = _model.FindAnimationIndex("walk", _idleAnim);
-        _runAnim = _model.FindAnimationIndex("run", _walkAnim);
-        _sleepAnim = _model.FindAnimationIndex("idle", _idleAnim);
+        _model = null!;
+        ApplyModel(GltfLoader.Load(gl, modelPath));
 
         _fbo = _gl.GenFramebuffer();
         _colorTex = _gl.GenTexture();
@@ -108,28 +107,54 @@ void main() {
 
         _pixelBuffer = new byte[width * height * 4];
         _bitmap = new Bitmap(width, height, GdiPixelFormat.Format32bppPArgb);
+    }
+
+    public void LoadModel(string path)
+    {
+        var next = GltfLoader.Load(_gl, path);
+        var prev = _model;
+        ApplyModel(next);
+        prev?.Dispose();
+    }
+
+    private void ApplyModel(AnimatedModel model)
+    {
+        _model = model;
+        _idleAnim = _model.FindAnimationIndex("idle");
+        _walkAnim = _model.FindAnimationIndex("walk", _idleAnim);
+        _runAnim = _model.FindAnimationIndex("run", _walkAnim);
+        _sleepAnim = _model.FindAnimationIndex("idle", _idleAnim);
+        _eatAnim = _model.FindAnimationIndex("eat", _idleAnim);
+        _danceAnim = _model.FindAnimationIndex("dance", _idleAnim);
 
         _cameraTarget = _model.Center;
         float dist = MathF.Max(_model.MaxDim * 2.2f, 2f);
         _cameraPos = _cameraTarget + new Vector3(0, dist * 0.35f, dist);
+        _animTime = 0;
+        _lastState = (PetState)(-1);
     }
 
-    public Bitmap Render(float yaw, PetState state, float deltaSeconds)
+    public Bitmap Render(float yaw, PetState state, bool sleepTwitch, float deltaSeconds)
     {
-        if (state != _lastState)
+        if (state != _lastState || sleepTwitch != _lastSleepTwitch)
         {
             _animTime = 0;
             _lastState = state;
+            _lastSleepTwitch = sleepTwitch;
         }
 
-        float timeScale = state == PetState.Sleep ? 0.4f : 1f;
+        float timeScale = state == PetState.Sleep && !sleepTwitch ? 0.3f : 1f;
         _animTime += deltaSeconds * timeScale;
 
-        int animIdx = state switch
+        int animIdx = (state, sleepTwitch) switch
         {
-            PetState.Walk => _walkAnim,
-            PetState.Chase => _runAnim,
-            PetState.Sleep => _sleepAnim,
+            (PetState.Sleep, true) => _walkAnim,
+            (PetState.Walk, _) => _walkAnim,
+            (PetState.WalkToSleep, _) => _walkAnim,
+            (PetState.Chase, _) => _runAnim,
+            (PetState.Sleep, _) => _sleepAnim,
+            (PetState.Eat, _) => _eatAnim,
+            (PetState.Dance, _) => _danceAnim,
             _ => _idleAnim,
         };
         _model.Pose(animIdx, _animTime);
@@ -144,8 +169,11 @@ void main() {
         _shader.Use();
         _shader.SetInt("uTex", 0);
 
+        var rootRotation = state == PetState.Sleep
+            ? Matrix4x4.CreateRotationZ(MathF.PI / 2f)
+            : Matrix4x4.CreateRotationY(yaw);
         var rootTransform = Matrix4x4.CreateTranslation(-_model.Center)
-            * Matrix4x4.CreateRotationY(yaw)
+            * rootRotation
             * Matrix4x4.CreateTranslation(_model.Center);
         var view = Matrix4x4.CreateLookAt(_cameraPos, _cameraTarget, Vector3.UnitY);
         var proj = Matrix4x4.CreatePerspectiveFieldOfView(

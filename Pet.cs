@@ -9,6 +9,9 @@ internal enum PetState
     Walk,
     Sleep,
     Chase,
+    Eat,
+    Dance,
+    WalkToSleep,
 }
 
 internal sealed class Pet
@@ -17,7 +20,15 @@ internal sealed class Pet
     private const float ChaseSpeed = 220f;
     private const float NoticeDistance = 90f;
     private const float CatchDistance = 28f;
-    private const double PostCatchPauseSeconds = 1.2;
+    private const double EatDurationSec = 1.5;
+    private const double DanceDurationSec = 2.0;
+    private const double EatCooldownSec = 60.0;
+    private const double CursorIdleSecForSleep = 60.0;
+    private const double CursorMovingGraceSec = 0.3;
+    private const float SleepArrivalDistance = 24f;
+    private const double SleepTwitchMinIntervalSec = 4.0;
+    private const double SleepTwitchMaxIntervalSec = 9.0;
+    private const double SleepTwitchDurationSec = 0.45;
     private const double MinStateSeconds = 1.5;
     private const double MaxStateSeconds = 4.5;
     private const float TurnRatePerSec = 9f;
@@ -30,8 +41,13 @@ internal sealed class Pet
     private PointF _velocity;
     private double _stateTimer;
     private float _targetYaw;
+    private Point _lastCursorPos = new(int.MinValue, int.MinValue);
+    private double _cursorStillSec;
+    private double _sleepTwitchTimer;
+    private double _eatCooldownTimer;
 
     public PetState State { get; private set; } = PetState.Idle;
+    public bool SleepTwitch { get; private set; }
     public float Yaw { get; private set; }
     public PointF Position => _position;
     public Size Size => _size;
@@ -43,45 +59,149 @@ internal sealed class Pet
         _position = new PointF(
             screenBounds.X + screenBounds.Width / 2f - petSize.Width / 2f,
             screenBounds.Y + screenBounds.Height / 2f - petSize.Height / 2f);
-        PickNextRandomState();
+        ScheduleNextRandomState();
     }
 
     public void Update(double deltaSeconds, Point cursorPos)
     {
+        bool cursorMoved = cursorPos != _lastCursorPos;
+        if (cursorMoved) _cursorStillSec = 0;
+        else _cursorStillSec += deltaSeconds;
+        _lastCursorPos = cursorPos;
+
+        if (_eatCooldownTimer > 0) _eatCooldownTimer -= deltaSeconds;
+
+        bool cursorIsMoving = _cursorStillSec < CursorMovingGraceSec;
+
         float centerX = _position.X + _size.Width / 2f;
         float centerY = _position.Y + _size.Height / 2f;
         float dx = cursorPos.X - centerX;
         float dy = cursorPos.Y - centerY;
         float dist = MathF.Sqrt(dx * dx + dy * dy);
 
-        if (State == PetState.Chase)
+        switch (State)
         {
-            if (dist <= CatchDistance)
-            {
-                State = PetState.Idle;
+            case PetState.Eat:
+                _stateTimer -= deltaSeconds;
                 _velocity = PointF.Empty;
-                _stateTimer = PostCatchPauseSeconds;
-            }
-            else
-            {
-                float inv = 1f / dist;
-                _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
-            }
-        }
-        else if (dist > NoticeDistance)
-        {
-            State = PetState.Chase;
-            float inv = dist > 0 ? 1f / dist : 0;
-            _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
-        }
-        else
-        {
-            _stateTimer -= deltaSeconds;
-            if (_stateTimer <= 0)
-                PickNextRandomState();
+                if (_stateTimer <= 0)
+                {
+                    State = PetState.Dance;
+                    _stateTimer = DanceDurationSec;
+                }
+                break;
+
+            case PetState.Dance:
+                _stateTimer -= deltaSeconds;
+                _velocity = PointF.Empty;
+                if (_stateTimer <= 0)
+                    ScheduleNextRandomState();
+                break;
+
+            case PetState.Sleep:
+                _velocity = PointF.Empty;
+                if (cursorMoved)
+                {
+                    State = PetState.Idle;
+                    _stateTimer = MinStateSeconds;
+                    SleepTwitch = false;
+                }
+                else
+                {
+                    _sleepTwitchTimer -= deltaSeconds;
+                    if (_sleepTwitchTimer <= 0)
+                    {
+                        if (SleepTwitch)
+                        {
+                            SleepTwitch = false;
+                            _sleepTwitchTimer = SleepTwitchMinIntervalSec
+                                + _rng.NextDouble() * (SleepTwitchMaxIntervalSec - SleepTwitchMinIntervalSec);
+                        }
+                        else
+                        {
+                            SleepTwitch = true;
+                            _sleepTwitchTimer = SleepTwitchDurationSec;
+                        }
+                    }
+                }
+                break;
+
+            case PetState.Chase:
+                if (!cursorIsMoving)
+                {
+                    ScheduleNextRandomState();
+                }
+                else if (dist <= CatchDistance)
+                {
+                    _velocity = PointF.Empty;
+                    if (_eatCooldownTimer <= 0)
+                    {
+                        State = PetState.Eat;
+                        _stateTimer = EatDurationSec;
+                        _eatCooldownTimer = EatCooldownSec;
+                    }
+                    else
+                    {
+                        ScheduleNextRandomState();
+                    }
+                }
+                else
+                {
+                    float inv = 1f / dist;
+                    _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
+                }
+                break;
+
+            case PetState.WalkToSleep:
+                if (cursorIsMoving)
+                {
+                    if (dist > NoticeDistance)
+                    {
+                        State = PetState.Chase;
+                        float invc = dist > 0 ? 1f / dist : 0;
+                        _velocity = new PointF(dx * invc * ChaseSpeed, dy * invc * ChaseSpeed);
+                    }
+                    else
+                    {
+                        ScheduleNextRandomState();
+                    }
+                }
+                else if (dist <= SleepArrivalDistance)
+                {
+                    State = PetState.Sleep;
+                    _velocity = PointF.Empty;
+                    SleepTwitch = false;
+                    _sleepTwitchTimer = SleepTwitchMinIntervalSec
+                        + _rng.NextDouble() * (SleepTwitchMaxIntervalSec - SleepTwitchMinIntervalSec);
+                }
+                else
+                {
+                    float inv = 1f / dist;
+                    _velocity = new PointF(dx * inv * WalkSpeed, dy * inv * WalkSpeed);
+                }
+                break;
+
+            default:
+                if (cursorIsMoving && dist > NoticeDistance)
+                {
+                    State = PetState.Chase;
+                    float inv = dist > 0 ? 1f / dist : 0;
+                    _velocity = new PointF(dx * inv * ChaseSpeed, dy * inv * ChaseSpeed);
+                }
+                else if (_cursorStillSec > CursorIdleSecForSleep)
+                {
+                    State = PetState.WalkToSleep;
+                }
+                else
+                {
+                    _stateTimer -= deltaSeconds;
+                    if (_stateTimer <= 0)
+                        ScheduleNextRandomState();
+                }
+                break;
         }
 
-        if (State == PetState.Walk || State == PetState.Chase)
+        if (State == PetState.Walk || State == PetState.Chase || State == PetState.WalkToSleep)
         {
             _position.X += _velocity.X * (float)deltaSeconds;
             _position.Y += _velocity.Y * (float)deltaSeconds;
@@ -102,11 +222,10 @@ internal sealed class Pet
         Yaw += diff * MathF.Min(1f, dt * TurnRatePerSec);
     }
 
-    private void PickNextRandomState()
+    private void ScheduleNextRandomState()
     {
         _stateTimer = MinStateSeconds + _rng.NextDouble() * (MaxStateSeconds - MinStateSeconds);
-        var roll = _rng.NextDouble();
-        if (roll < 0.6)
+        if (_rng.NextDouble() < 0.65)
         {
             State = PetState.Walk;
             var angle = _rng.NextDouble() * Math.PI * 2;
@@ -114,14 +233,9 @@ internal sealed class Pet
                 (float)(Math.Cos(angle) * WalkSpeed),
                 (float)(Math.Sin(angle) * WalkSpeed));
         }
-        else if (roll < 0.9)
-        {
-            State = PetState.Idle;
-            _velocity = PointF.Empty;
-        }
         else
         {
-            State = PetState.Sleep;
+            State = PetState.Idle;
             _velocity = PointF.Empty;
         }
     }
