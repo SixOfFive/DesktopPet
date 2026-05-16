@@ -18,10 +18,11 @@ internal sealed class WindowWalker : IPetBehavior
     private const double HeadShakeDurationSec = 0.6;
     private const float FallLandImpactSpeed = 200f;
     private const float ClimbSpeed = 60f;
-    private const double ClimbChance = 0.55;
-    private const double SpontaneousClimbChancePerSec = 0.20;
+    private const double ClimbChance = 0.85;
+    private const double SpontaneousClimbChancePerSec = 0.35;
+    private const double SpontaneousClimbOnFloorBoost = 2.5;
     private const double GripLossChancePerSec = 0.12;
-    private const float ClimbWallSearchPx = 24f;
+    private const float ClimbWallSearchPx = 100f;
 
     private static readonly Random Rng = new();
 
@@ -134,7 +135,10 @@ internal sealed class WindowWalker : IPetBehavior
                 return;
             }
 
-            if (Rng.NextDouble() < SpontaneousClimbChancePerSec * deltaSeconds)
+            double climbRate = SpontaneousClimbChancePerSec;
+            if (groundUnder.Value >= _screenBounds.Bottom - 1f)
+                climbRate *= SpontaneousClimbOnFloorBoost;
+            if (Rng.NextDouble() < climbRate * deltaSeconds)
             {
                 if (TryStartClimb(centerX, groundUnder.Value))
                     return;
@@ -204,23 +208,6 @@ internal sealed class WindowWalker : IPetBehavior
             float distRight = MathF.Abs(w.Right - petCenterX);
             float dx = MathF.Min(distLeft, distRight);
             if (dx > ClimbWallSearchPx) continue;
-
-            float landingX = distLeft < distRight ? w.Left - _size.Width / 2f : w.Right + _size.Width / 2f;
-            var topRect = new Rectangle(
-                (int)(landingX - _size.Width / 2f),
-                w.Top - _size.Height,
-                _size.Width,
-                _size.Height);
-            bool obscured = false;
-            for (int j = 0; j < i; j++)
-            {
-                if (_windows[j].IntersectsWith(topRect))
-                {
-                    obscured = true;
-                    break;
-                }
-            }
-            if (obscured) continue;
 
             if (dx < bestDx)
             {

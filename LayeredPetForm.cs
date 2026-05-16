@@ -20,6 +20,23 @@ internal sealed class LayeredPetForm : Form
 
     public int CurrentRenderSize { get; private set; } = BaseRenderSize;
 
+    private static Rectangle ComputeAllScreenArea()
+    {
+        var screens = Screen.AllScreens;
+        if (screens.Length == 0)
+            return Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+        foreach (var s in screens)
+        {
+            var r = s.WorkingArea;
+            if (r.X < minX) minX = r.X;
+            if (r.Y < minY) minY = r.Y;
+            if (r.Right > maxX) maxX = r.Right;
+            if (r.Bottom > maxY) maxY = r.Bottom;
+        }
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
+    }
+
     private IPetBehavior _pet;
     private readonly Renderer.Scene _scene;
     private readonly ZParticles _zParticles = new();
@@ -39,8 +56,7 @@ internal sealed class LayeredPetForm : Form
         StartPosition = FormStartPosition.Manual;
         Size = new Size(CurrentRenderSize, CurrentRenderSize);
 
-        _screenArea = Screen.PrimaryScreen?.WorkingArea
-            ?? new Rectangle(0, 0, 1920, 1080);
+        _screenArea = ComputeAllScreenArea();
         _pet = new Pet(_screenArea, Size);
 
         _timer = new System.Windows.Forms.Timer { Interval = FrameIntervalMs };
