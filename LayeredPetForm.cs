@@ -40,6 +40,7 @@ internal sealed class LayeredPetForm : Form
     private IPetBehavior _pet;
     private readonly Renderer.Scene _scene;
     private readonly ZParticles _zParticles = new();
+    private BallForm? _ball;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private TimeSpan _lastTick;
@@ -154,6 +155,13 @@ internal sealed class LayeredPetForm : Form
             BehaviorKind.WindowWalker => new WindowWalker(_screenArea, Size, Handle),
             _ => new Pet(_screenArea, Size),
         };
+        _pet.SetBall(_ball);
+    }
+
+    public void SetBall(BallForm? ball)
+    {
+        _ball = ball;
+        _pet.SetBall(ball);
     }
 
     protected override void Dispose(bool disposing)

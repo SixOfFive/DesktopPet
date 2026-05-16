@@ -10,6 +10,7 @@ internal sealed class Settings
     public string? SelectedModelPath { get; set; }
     public string? SelectedBehavior { get; set; }
     public string? SelectedTexturePath { get; set; }
+    public bool BallVisible { get; set; }
 
     public const float MinMultiplier = 0.25f;
     public const float MaxMultiplier = 4.0f;

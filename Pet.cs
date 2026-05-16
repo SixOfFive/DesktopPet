@@ -16,6 +16,8 @@ internal enum PetState
     Climb,
     FacePlant,
     HeadShake,
+    FetchBall,
+    ReturnBall,
 }
 
 internal sealed class Pet : IPetBehavior
@@ -51,6 +53,9 @@ internal sealed class Pet : IPetBehavior
     private double _cursorStillSec;
     private double _sleepTwitchTimer;
     private double _eatCooldownTimer;
+    private BallForm? _ball;
+
+    public void SetBall(BallForm? ball) => _ball = ball;
 
     public PetState State { get; private set; } = PetState.Idle;
     public bool SleepTwitch { get; private set; }
@@ -89,6 +94,51 @@ internal sealed class Pet : IPetBehavior
 
         switch (State)
         {
+            case PetState.FetchBall:
+                if (_ball == null || !_ball.IsAvailable)
+                {
+                    ScheduleNextRandomState();
+                    break;
+                }
+                {
+                    var bc = _ball.Center;
+                    float bdx = bc.X - centerX;
+                    float bdy = bc.Y - centerY;
+                    float bdist = MathF.Sqrt(bdx * bdx + bdy * bdy);
+                    if (bdist < CatchDistance)
+                    {
+                        _ball.GrabByPet();
+                        State = PetState.ReturnBall;
+                        _velocity = PointF.Empty;
+                    }
+                    else
+                    {
+                        float inv = 1f / bdist;
+                        _velocity = new PointF(bdx * inv * _chaseSpeed, bdy * inv * _chaseSpeed);
+                    }
+                }
+                break;
+
+            case PetState.ReturnBall:
+                if (_ball == null || _ball.State != BallState.CarriedByPet)
+                {
+                    State = PetState.Idle;
+                    _velocity = PointF.Empty;
+                    break;
+                }
+                if (dist < CatchDistance)
+                {
+                    _ball.DropAt(new PointF(centerX - BallForm.BallSize / 2f, centerY - BallForm.BallSize / 2f));
+                    State = PetState.Idle;
+                    _velocity = PointF.Empty;
+                }
+                else
+                {
+                    float inv = 1f / dist;
+                    _velocity = new PointF(dx * inv * _chaseSpeed, dy * inv * _chaseSpeed);
+                }
+                break;
+
             case PetState.Eat:
                 _stateTimer -= deltaSeconds;
                 _velocity = PointF.Empty;
@@ -190,7 +240,12 @@ internal sealed class Pet : IPetBehavior
                 break;
 
             default:
-                if (cursorIsMoving && dist > NoticeDistance)
+                if (_ball != null && _ball.IsAvailable)
+                {
+                    State = PetState.FetchBall;
+                    _velocity = PointF.Empty;
+                }
+                else if (cursorIsMoving && dist > NoticeDistance)
                 {
                     State = PetState.Chase;
                     float inv = dist > 0 ? 1f / dist : 0;
@@ -209,7 +264,8 @@ internal sealed class Pet : IPetBehavior
                 break;
         }
 
-        if (State == PetState.Walk || State == PetState.Chase || State == PetState.WalkToSleep)
+        if (State == PetState.Walk || State == PetState.Chase || State == PetState.WalkToSleep
+            || State == PetState.FetchBall || State == PetState.ReturnBall)
         {
             _position.X += _velocity.X * (float)deltaSeconds;
             _position.Y += _velocity.Y * (float)deltaSeconds;
@@ -217,6 +273,11 @@ internal sealed class Pet : IPetBehavior
 
             if (MathF.Abs(_velocity.X) > 1f || MathF.Abs(_velocity.Y) > 1f)
                 _targetYaw = MathF.Atan2(_velocity.X, _velocity.Y);
+        }
+
+        if (State == PetState.ReturnBall && _ball != null && _ball.State == BallState.CarriedByPet)
+        {
+            _ball.PositionWithPet(new PointF(_position.X + _size.Width / 2f, _position.Y + _size.Height / 2f));
         }
 
         UpdateYaw((float)deltaSeconds);

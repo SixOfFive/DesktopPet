@@ -248,6 +248,8 @@ void main() {
                 (PetState.Sleep, true) => _walkAnim,
                 (PetState.Walk, _) => _walkAnim,
                 (PetState.WalkToSleep, _) => _walkAnim,
+                (PetState.ReturnBall, _) => _walkAnim,
+                (PetState.FetchBall, _) => _runAnim,
                 (PetState.Chase, _) => _runAnim,
                 (PetState.Sleep, _) => _sleepAnim,
                 (PetState.Eat, _) => _eatAnim,
@@ -275,6 +277,8 @@ void main() {
             {
                 PetState.Walk => _skinnedModel.FindAnimationIndex("Run", idleIdx),
                 PetState.WalkToSleep => _skinnedModel.FindAnimationIndex("Run", idleIdx),
+                PetState.FetchBall => _skinnedModel.FindAnimationIndex("Run", idleIdx),
+                PetState.ReturnBall => _skinnedModel.FindAnimationIndex("Run", idleIdx),
                 PetState.Chase => _skinnedModel.FindAnimationIndex("Run", idleIdx),
                 PetState.Fall => _skinnedModel.FindAnimationIndex("Fall", idleIdx),
                 PetState.Climb => _skinnedModel.FindAnimationIndex("Climb", idleIdx),

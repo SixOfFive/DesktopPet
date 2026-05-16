@@ -25,6 +25,8 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? ExitRequested;
     public event EventHandler<PetSelection>? PetSelected;
     public event EventHandler<SizeChange>? SizeChangeRequested;
+    public event EventHandler<bool>? BallToggleRequested;
+    private ToolStripMenuItem? _ballItem;
 
     public TrayIcon(IEnumerable<TrayMenuGroup> groups, PetSelection? initial)
     {
@@ -53,6 +55,11 @@ internal sealed class TrayIcon : IDisposable
         sizeMenu.DropDownItems.Add("Regular size", null, (_, _) => SizeChangeRequested?.Invoke(this, SizeChange.Regular));
         sizeMenu.DropDownItems.Add("Double size", null, (_, _) => SizeChangeRequested?.Invoke(this, SizeChange.Double));
         menu.Items.Add(sizeMenu);
+
+        _ballItem = new ToolStripMenuItem("Show ball") { CheckOnClick = true };
+        _ballItem.CheckedChanged += (_, _) => BallToggleRequested?.Invoke(this, _ballItem.Checked);
+        menu.Items.Add(_ballItem);
+
         menu.Items.Add(new ToolStripSeparator());
 
         menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
@@ -103,6 +110,11 @@ internal sealed class TrayIcon : IDisposable
         foreach (var (e, item) in _entryItems)
             item.Checked = ReferenceEquals(e, entry);
         PetSelected?.Invoke(this, new PetSelection(entry.ModelPath, entry.Behavior, entry.TexturePath));
+    }
+
+    public void SetBallVisible(bool visible)
+    {
+        if (_ballItem != null) _ballItem.Checked = visible;
     }
 
     public void Dispose()

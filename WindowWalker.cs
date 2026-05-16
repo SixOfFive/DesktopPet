@@ -48,6 +48,8 @@ internal sealed class WindowWalker : IPetBehavior
     public PointF Position => _position;
     public Size Size => _size;
 
+    public void SetBall(BallForm? ball) { /* zombie ignores the ball */ }
+
     public WindowWalker(Rectangle screenBounds, Size petSize, IntPtr selfHwnd)
     {
         _screenBounds = screenBounds;

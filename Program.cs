@@ -41,7 +41,48 @@ internal static class Program
         form.SetRenderSize(initialSize);
         ApplySelection(currentSelection, scene, form);
 
+        BallForm? ball = null;
+        void SetBallVisible(bool show)
+        {
+            if (show && ball == null)
+            {
+                var area = Screen.AllScreens.Length > 0
+                    ? Screen.AllScreens[0].WorkingArea
+                    : new Rectangle(0, 0, 1920, 1080);
+                // Union over all screens for the ball bounds
+                int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+                foreach (var s in Screen.AllScreens)
+                {
+                    var r = s.WorkingArea;
+                    if (r.X < minX) minX = r.X;
+                    if (r.Y < minY) minY = r.Y;
+                    if (r.Right > maxX) maxX = r.Right;
+                    if (r.Bottom > maxY) maxY = r.Bottom;
+                }
+                area = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+                ball = new BallForm(area);
+                ball.Show();
+                form.SetBall(ball);
+            }
+            else if (!show && ball != null)
+            {
+                form.SetBall(null);
+                ball.Close();
+                ball.Dispose();
+                ball = null;
+            }
+            settings.BallVisible = show;
+            settings.Save();
+        }
+
+        if (settings.BallVisible)
+        {
+            SetBallVisible(true);
+            tray.SetBallVisible(true);
+        }
+
         tray.ExitRequested += (_, _) => Application.ExitThread();
+        tray.BallToggleRequested += (_, show) => SetBallVisible(show);
 
         tray.PetSelected += (_, selection) =>
         {
