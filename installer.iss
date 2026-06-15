@@ -1,5 +1,5 @@
 #define MyAppName "DesktopPet"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "SixOfFive"
 #define MyAppURL "https://github.com/SixOfFive/DesktopPet"
 #define MyAppExeName "Neko.exe"
