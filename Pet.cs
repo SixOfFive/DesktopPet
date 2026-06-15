@@ -72,6 +72,7 @@ internal sealed class Pet : IPetBehavior
     private readonly Size _size;
     private readonly float _walkSpeed;
     private readonly float _chaseSpeed;
+    private readonly float _ballCatchDistance;
 
     private PointF _position;
     private PointF _velocity;
@@ -111,6 +112,7 @@ internal sealed class Pet : IPetBehavior
         _size = petSize;
         _walkSpeed = BaseWalkSpeed * petSize.Height / 128f;
         _chaseSpeed = BaseChaseSpeed * petSize.Height / 128f;
+        _ballCatchDistance = petSize.Height / 2f + BallForm.BallSize / 2f + 8f;
         _position = new PointF(
             screenBounds.X + screenBounds.Width / 2f - petSize.Width / 2f,
             screenBounds.Y + screenBounds.Height / 2f - petSize.Height / 2f);
@@ -147,7 +149,7 @@ internal sealed class Pet : IPetBehavior
                     float bdx = bc.X - centerX;
                     float bdy = bc.Y - centerY;
                     float bdist = MathF.Sqrt(bdx * bdx + bdy * bdy);
-                    if (bdist < CatchDistance)
+                    if (bdist < _ballCatchDistance)
                     {
                         _ball.GrabByPet();
                         State = PetState.ReturnBall;
