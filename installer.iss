@@ -46,6 +46,7 @@ Name: "startupshortcut"; Description: "Launch {#MyAppName} when Windows starts";
 
 [Files]
 Source: "bin\Release\net9.0-windows\win-x64\publish\Neko.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "bin\Release\net9.0-windows\win-x64\publish\glfw3.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\Release\net9.0-windows\win-x64\publish\pets\*"; DestDir: "{app}\pets"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "kenney_cube-pets_1.0\License.txt"; DestDir: "{app}"; DestName: "Kenney-License.txt"; Flags: ignoreversion
 
